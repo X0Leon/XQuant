@@ -37,7 +37,7 @@ class SignalEvent(Event):
 		参数：
 		symbol: 股票代号字符串，统一使用名称或者数字字符串中的一种
 		datatime：signal产生的时间戳
-		signal_type: 买('LONG')或卖('SHORT')
+		signal_type: 多头('LONG')或空头('SHORT')
 		"""
 		self.type =  'SIGNAL'
 		self.symbol = symbol
@@ -75,6 +75,7 @@ class OrderEvent(Event):
 		print("Order: Symbol=%s, Type=%s, Quantity=%s, Direction=%s" % 
 			(self.symbol, self.order_type,self.quantity, self.direction))
 
+
 class FillEvent(Event):
 	"""
 	Fill事件类
@@ -86,14 +87,14 @@ class FillEvent(Event):
 		        direction, fill_cost, commission=None):
 		"""
 		初始化FillEvent对象，设定好参数
-		如果佣金没有提供，按照国金证券佣金宝的来
+		如果费率没有提供，按照券商佣金万3来
 		参数：
 		timeindex: 成交时的bar
 		symbol: 成交的交易代码
 		exchange: 成交的交易所(exchange)
 		quantity: 成交数量
 		direction: 成交的方向
-		fill_cost：成交的仓位（RMB衡量）
+		fill_cost：成交成本（RMB衡量）
 		commission: 费率，即交易成本
 
 		TODO: 
