@@ -1,3 +1,13 @@
+# -*- coding: utf-8 -*-
+
+"""
+测试event, data, strategy, portfolio, execution模块，
+仅是中间测试，上层接口为backtest模块
+
+@author: X0Leon
+@version: 0.1
+"""
+
 import queue
 import datetime
 import os
@@ -16,7 +26,7 @@ symbol_list = ['600008', '600018']
 bars = CSVDataHandler(events, csv_dir, symbol_list)
 strategy = BuyAndHoldStrategy(bars, events)
 port = NaivePortfolio(bars, events, start_date, initial_capital=1.0e5)
-broker = SimulatedExecutionHandler(events)
+broker = SimulatedExecutionHandler(bars,events)
 
 while True:
     if bars.continue_backtest:
@@ -43,6 +53,9 @@ while True:
 
                 elif event.e_type == 'FILL':
                     port.update_fill(event)
+    # 10-Minute heartbeat
+    # time.sleep(10*60)
 
 port.create_equity_curve_dataframe()
 print(port.equity_curve)
+print(port.output_summary_stats())

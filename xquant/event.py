@@ -7,6 +7,7 @@ Event类，在数据、组合、交易所（或模拟交易所）间流动的事
 @version: 0.1
 """
 
+
 class Event(object):
     """
     Event类是基类
@@ -85,7 +86,8 @@ class FillEvent(Event):
     [注：另一种是立即成交否则取消指令(Immediate or Cancel, IOC) ]
     存储实际成交的成交量和价格，以及佣金
     """
-    def __init__(self, timeindex, symbol, exchange, quantity, direction):
+    def __init__(self, timeindex, symbol, exchange, quantity, direction,
+                 fill_cost, commission):
         """
         初始化FillEvent对象，设定好参数
         如果费率没有提供，按照券商佣金万3来
@@ -95,6 +97,8 @@ class FillEvent(Event):
         exchange: 成交的交易所(exchange)
         quantity: 成交数量
         direction: 成交的方向
+        fill_cost：成交价
+        commission：费率
         """
         self.e_type = 'FILL'
         self.timeindex = timeindex
@@ -102,9 +106,24 @@ class FillEvent(Event):
         self.exchange = exchange
         self.quantity = quantity
         self.direction = direction
+        self.fill_cost = fill_cost
+        self.commission = commission
 
-    def calculate_commission(self):
-        """
-        计算费率（即交易成本）的功能函数
-        """
-        pass
+    #     if commission is None:
+    #         self.commission = self.calculate_commission()
+    #     else:
+    #         self.commission = commission
+    #
+    # def calculate_commission(self):
+    #     """
+    #     计算费率（即交易成本）的功能函数
+    #     """
+    #     full_cost = 1.0
+    #     if self.direction == 'BUY':
+    #         full_cost = max(5.0, 3/10000.0 * self.quantity * self.fill_cost)
+    #     elif self.direction == 'SELL':
+    #         full_cost = self.quantity * self.fill_cost * 1/1000.0 \
+    #                     + max(5.0, 3/10000.0 * self.quantity * self.fill_cost)
+    #     else:
+    #         pass
+    #     return full_cost

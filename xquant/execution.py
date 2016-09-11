@@ -18,6 +18,7 @@ from abc import ABCMeta, abstractmethod
 
 from event import FillEvent, OrderEvent
 
+
 class ExecutionHandler(object):
     """
     ExecutionHandler抽象基类，处理从Portofio发来的订单，
@@ -27,7 +28,7 @@ class ExecutionHandler(object):
     __metaclass__ = ABCMeta
 
     @abstractmethod
-    def excute_order(self, event):
+    def execute_order(self, event):
         """
         取一个Order事件并执行，产生Fill事件并放入Events队列
         参数：
@@ -41,12 +42,14 @@ class SimulatedExecutionHandler(ExecutionHandler):
     简单的模拟交易所
     未考虑等待时间、滑点、部分成交等
     """
-    def __init__(self, events):
+    def __init__(self, bars, events):
         """
         初始化
         参数：
+        bars: DataHandler结果bars，为了对回测时成交价做模拟处理
         events: Event队列
         """
+        self.bars = bars
         self.events = events
 
     def execute_order(self, event):
@@ -56,9 +59,24 @@ class SimulatedExecutionHandler(ExecutionHandler):
         event: 含有order信息的Event对象
         """
         if event.e_type == 'ORDER':
-            fill_event = FillEvent(datetime.datetime.utcnow(), event.symbol,
-                                    'SimulatorExchange', event.quantity, event.direction)
-            # 由于我们在NaivePortfolio对象中已经处理成交成本，这里设为'None'
-            # 倒数第二个参数为fill_cost，即成交价，简单设置为k bar的close
-            # 实际交易中我们可以从账户中获得这一数据
+            # 模拟设置成交价和手续费，暂时用k bar的close价
+            # 如果考虑滑点、冲击成本等，可以update到下一根k bar的价格处理
+            fill_cost = self.bars.get_latest_bars(event.symbol)[0][5]
+            commission = 0.0
+
+            if event.direction == 'BUY':
+                commission = max(5.0, 3 / 10000.0 * event.quantity * fill_cost)
+            elif event.direction == 'SELL':
+                full_cost = event.quantity * fill_cost * 1 / 1000.0 \
+                            + max(5.0, 3 / 10000.0 * event.quantity * event.fill_cost)
+            else:
+                pass
+
+
+            timeindex = self.bars.get_latest_bars(event.symbol)[0][1]
+
+            fill_event = FillEvent(timeindex, event.symbol, 'SimulatorExchange',
+                                   event.quantity, event.direction, fill_cost,
+                                   commission = commission)
+
             self.events.put(fill_event)

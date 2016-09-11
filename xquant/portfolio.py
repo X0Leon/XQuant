@@ -7,7 +7,7 @@ TODO: 可以大大扩展
 
 SignalEvent -> Portfolio -> OrderEvent
                          <- FillEvent
-    处理Signla，产生Order，翻译Fill以更新仓位
+    处理Signal，产生Order，接受Fill以更新仓位
 
 可以看出，Portfolio是最复杂的部分，各种Event可以与之交互
 
@@ -24,10 +24,11 @@ from abc import ABCMeta, abstractmethod
 from math import floor # 返回下舍整数值
 
 from event import OrderEvent, FillEvent
+from performance import create_sharpe_ratio, create_drawdowns
 
 class Portfolio(object):
     """
-    Portofio类处理头寸和持仓市值
+    Portfolio类处理头寸和持仓市值
     基本bar来计算，可以是秒、分钟、5分钟、30分钟、60分钟等的K线
     """
     __metaclass__ = ABCMeta
@@ -69,7 +70,7 @@ class NaivePortfolio(Portfolio):
         self.initial_capital = initial_capital
 
         self.all_positions = self.construct_all_positions() # 字典列表
-        self.current_postitions = dict((k,v) for k,v in [(s,0) for s in self.symbol_list]) # 字典
+        self.current_positions = dict((k,v) for k,v in [(s,0) for s in self.symbol_list]) # 字典
 
         self.all_holdings = self.construct_all_holdings() # 字典列表
         self.current_holdings = self.construct_current_holdings() # 字典
@@ -125,7 +126,7 @@ class NaivePortfolio(Portfolio):
         dp['datetime'] = bars[self.symbol_list[0]][0][1]
 
         for s in self.symbol_list:
-            dp[s] = self.current_postitions[s]
+            dp[s] = self.current_positions[s]
         # 添加当前头寸
         self.all_positions.append(dp) # 注意all_postions是k bar周期的字典列表
         # 更新持仓，字典
@@ -137,7 +138,7 @@ class NaivePortfolio(Portfolio):
 
         for s in self.symbol_list:
             # 估计持仓市值
-            market_value = self.current_postitions[s] * bars[s][0][5]
+            market_value = self.current_positions[s] * bars[s][0][5]
             dh[s] = market_value
             dh['total'] += market_value
 
@@ -158,7 +159,7 @@ class NaivePortfolio(Portfolio):
         if fill.direction == 'SELL':
             fill_dir = -1
 
-        self.current_postitions[fill.symbol] += fill_dir*fill.quantity
+        self.current_positions[fill.symbol] += fill_dir*fill.quantity
 
     def update_holdings_from_fill(self, fill):
         """
@@ -172,16 +173,14 @@ class NaivePortfolio(Portfolio):
         if fill.direction == 'SELL':
             fill_dir = -1
 
-        fill_cost = self.bars.get_latest_bars(fill.symbol)[0][5] # close price
+        # fill_cost = self.bars.get_latest_bars(fill.symbol)[0][5] # close price
+        fill_cost = fill.fill_cost # 成交价通过模拟交易所发回的Fill事件中读取
         cost = fill_dir * fill_cost * fill.quantity
 
-        commission = 3.0/10000 * cost # 手续费简单按照万3来算的
-                                      # 手续费需要优化，最好在Fill时间中实现
-
         self.current_holdings[fill.symbol] += cost
-        self.current_holdings['commission'] += commission 
-        self.current_holdings['cash'] -= (cost + commission)
-        self.current_holdings['total'] -= (cost + commission)
+        self.current_holdings['commission'] += fill.commission
+        self.current_holdings['cash'] -= (cost + fill.commission)
+        self.current_holdings['total'] -= (cost + fill.commission)
 
     def update_fill(self, event):
         """
@@ -191,7 +190,7 @@ class NaivePortfolio(Portfolio):
             self.update_position_from_fill(event)
             self.update_holdings_from_fill(event)
 
-    # (2) 与SignalEvent对象交互: 通过一个工具函数来实现Portofio抽象基类的update_signal()
+    # (2) 与SignalEvent对象交互: 通过一个工具函数来实现Portfolio抽象基类的update_signal()
 
     def generate_naive_order(self, signal):
         """
@@ -204,8 +203,8 @@ class NaivePortfolio(Portfolio):
         direction = signal.signal_type
         # strength = signal.strength 尚未定义此属性
         # mkt_quantity = floor(100 * strength)
-        mkt_quantity = 100
-        cur_quantity = self.current_postitions[symbol]
+        mkt_quantity = 2000
+        cur_quantity = self.current_positions[symbol]
         order_type = 'MKT'
 
         if direction == 'LONG' and cur_quantity == 0: 
@@ -229,9 +228,9 @@ class NaivePortfolio(Portfolio):
             self.events.put(order_event)
 
 
-    ### 股票曲线的功能函数，用于perfomance的计算
+    ### 股票曲线的功能函数，用于performance的计算
     # TODO：
-    #     设置perfomance的modulue，强化可视化的功能
+    #     设置performance的module，强化可视化的功能
     def create_equity_curve_dataframe(self):
         """
         从all_holdings的字典列表中生成pandas的DataFrame
@@ -242,3 +241,24 @@ class NaivePortfolio(Portfolio):
         curve['returns'] = curve['total'].pct_change() # 计算百分比变化
         curve['equity_curve'] = (1.0 + curve['returns']).cumprod() # 计算累计值
         self.equity_curve = curve
+
+    def output_summary_stats(self):
+        """
+        生成组合的一些统计信息
+        """
+        total_return = self.equity_curve['equity_curve'][-1]
+        returns = self.equity_curve['returns']
+        pnl = self.equity_curve['equity_curve']
+
+        sharpe_ratio = create_sharpe_ratio(returns, periods=252)
+        drawdown, max_dd, dd_duration = create_drawdowns(pnl)
+        self.equity_curve['drawdown'] = drawdown
+
+        stats = [("Total Return", "%0.2f%%" % ((total_return - 1.0) * 100.0)),
+                 ("Sharpe Ration", "%0.2f" % sharpe_ratio),
+                 ("Max Drawdown", "%0.2f%%" % (max_dd * 100.0)),
+                 ("Drawdown Duration", "%d" % dd_duration)]
+
+        self.equity_curve.to_csv('equity.csv')
+        return stats
+
