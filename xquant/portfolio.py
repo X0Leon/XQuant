@@ -49,7 +49,7 @@ class Portfolio(object):
 
 
 # 一个简单的组合订单管理的类
-class NaivePortfolio(Portfolio):
+class BasicPortfolio(Portfolio):
     """
     NaivePortfolio发送orders给brokerage对象，这里简单地使用固定的数量，
     不进行任何风险管理或仓位管理（这是不现实的！），仅供测试使用
@@ -128,7 +128,7 @@ class NaivePortfolio(Portfolio):
         for s in self.symbol_list:
             dp[s] = self.current_positions[s]
         # 添加当前头寸
-        self.all_positions.append(dp) # 注意all_postions是k bar周期的字典列表
+        self.all_positions.append(dp) # 注意all_positions是k bar周期的字典列表
         # 更新持仓，字典
         dh = dict((k,v) for k,v in [(s,0) for s in self.symbol_list])
         dh['datetime'] = bars[self.symbol_list[0]][0][1]
@@ -145,7 +145,7 @@ class NaivePortfolio(Portfolio):
         self.all_holdings.append(dh)
 
      
-    # (1) 与FillEvent对象交互: 通过两个工具函数来实现Portofio抽象基类的update_fill()
+    # (1) 与FillEvent对象交互: 通过两个工具函数来实现Portfolio抽象基类的update_fill()
 
     def update_position_from_fill(self, fill):
         """
@@ -186,7 +186,7 @@ class NaivePortfolio(Portfolio):
         """
         从FillEvent中更新组合的头寸和市值，实现
         """
-        if event.e_type == 'FILL':
+        if event.type == 'FILL':
             self.update_position_from_fill(event)
             self.update_holdings_from_fill(event)
 
@@ -223,7 +223,7 @@ class NaivePortfolio(Portfolio):
         """
         基于组合管理的逻辑，通过SignalEvent对象来产生新的orders
         """
-        if event.e_type == 'SIGNAL':
+        if event.type == 'SIGNAL':
             order_event = self.generate_naive_order(event)
             self.events.put(order_event)
 

@@ -25,7 +25,7 @@ class MarketEvent(Event):
         """
         初始化
         """
-        self.e_type = 'MARKET'
+        self.type = 'MARKET'
 
 
 class SignalEvent(Event):
@@ -42,7 +42,7 @@ class SignalEvent(Event):
         datatime：signal产生的时间戳
         signal_type: 多头('LONG')、空头('SHORT')、平仓('EXIT')
         """
-        self.e_type =  'SIGNAL'
+        self.type =  'SIGNAL'
         self.symbol = symbol
         self.datatime = datatime
         self.signal_type = signal_type
@@ -65,7 +65,7 @@ class OrderEvent(Event):
         quantity: 非负整数
         direction: 'BUY' or 'SELL'
         """
-        self.e_type = 'ORDER'
+        self.type = 'ORDER'
         self.symbol = symbol
         self.order_type = order_type
         self.quantity = quantity
@@ -100,7 +100,7 @@ class FillEvent(Event):
         fill_cost：成交价
         commission：费率
         """
-        self.e_type = 'FILL'
+        self.type = 'FILL'
         self.timeindex = timeindex
         self.symbol = symbol
         self.exchange = exchange

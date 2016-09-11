@@ -58,7 +58,7 @@ class SimulatedExecutionHandler(ExecutionHandler):
         参数：
         event: 含有order信息的Event对象
         """
-        if event.e_type == 'ORDER':
+        if event.type == 'ORDER':
             # 模拟设置成交价和手续费，暂时用k bar的close价
             # 如果考虑滑点、冲击成本等，可以update到下一根k bar的价格处理
             fill_cost = self.bars.get_latest_bars(event.symbol)[0][5]
@@ -67,8 +67,8 @@ class SimulatedExecutionHandler(ExecutionHandler):
             if event.direction == 'BUY':
                 commission = max(5.0, 3 / 10000.0 * event.quantity * fill_cost)
             elif event.direction == 'SELL':
-                full_cost = event.quantity * fill_cost * 1 / 1000.0 \
-                            + max(5.0, 3 / 10000.0 * event.quantity * event.fill_cost)
+                commission = event.quantity * fill_cost * 1 / 1000.0 \
+                            + max(5.0, 3 / 10000.0 * event.quantity * fill_cost)
             else:
                 pass
 

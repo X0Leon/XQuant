@@ -10,6 +10,7 @@ DataHandler抽象基类
 
 import datetime
 import os
+import numpy as np
 import pandas as pd
 
 from abc import ABCMeta, abstractmethod
@@ -96,7 +97,6 @@ class CSVDataHandler(DataHandler):
                 # 不用担心，在下面update_bars()方法中会更新出实际意义的数据
             self.latest_symbol_data[s] = []
 
-            # TODO: speed up for-loops!
         for s in self.symbol_list:
             # 合并index后的股票数据，所有股票的index相同
             # method指明对缺失值的填充方式，pad/ffill是用向前取值
@@ -128,6 +128,30 @@ class CSVDataHandler(DataHandler):
             print("数据库中不存在此股票！")
         else:
             return bars_list[-N:]
+
+    def get_latest_bar(self, symbol):
+        """
+        从latest_symbol列表中直接返回最后的bar
+        而get_latest_bars(symbol, N=1)返回元素只有最后一个bar的list
+        """
+        try:
+            bars_list = self.latest_symbol_data[symbol]
+        except KeyError:
+            print("数据库中不存在此股票！")
+        else:
+            return bars_list[-1]
+
+    def get_latest_bar_datetime(self, symbol):
+        """
+        返回最后一个bar的Python datetime对象
+        """
+        try:
+            bars_list = self.latest_symbol_data[symbol]
+        except KeyError:
+            print("数据库中不存在此股票")
+        else:
+            return bars_list[-1][1]
+
 
     # 实现ABC CSVDataHandler中方法update_bars()
     def update_bars(self):

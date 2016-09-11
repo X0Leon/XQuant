@@ -14,7 +14,7 @@ import os
 
 from data import CSVDataHandler
 from execution import SimulatedExecutionHandler
-from portfolio import NaivePortfolio
+from portfolio import BasicPortfolio
 from strategy import BuyAndHoldStrategy
 
 events = queue.Queue()
@@ -25,7 +25,7 @@ symbol_list = ['600008', '600018']
 
 bars = CSVDataHandler(events, csv_dir, symbol_list)
 strategy = BuyAndHoldStrategy(bars, events)
-port = NaivePortfolio(bars, events, start_date, initial_capital=1.0e5)
+port = BasicPortfolio(bars, events, start_date, initial_capital=1.0e5)
 broker = SimulatedExecutionHandler(bars,events)
 
 while True:
@@ -41,17 +41,17 @@ while True:
             break
         else:
             if event is not None:
-                if event.e_type == 'MARKET':
+                if event.type == 'MARKET':
                     strategy.calculate_signals(event)
                     port.update_timeindex(event)
 
-                elif event.e_type == 'SIGNAL':
+                elif event.type == 'SIGNAL':
                     port.update_signal(event)
 
-                elif event.e_type == 'ORDER':
+                elif event.type == 'ORDER':
                     broker.execute_order(event)
 
-                elif event.e_type == 'FILL':
+                elif event.type == 'FILL':
                     port.update_fill(event)
     # 10-Minute heartbeat
     # time.sleep(10*60)
