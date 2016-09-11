@@ -8,15 +8,15 @@ orders的执行，这里模拟交易所行为
 TODO: 可以大大扩展：如滑点，市场冲击等等
 
 @author: X0Leon
-@version: 0.1
+@version: 0.2.0a
 """
 
-import datetime
-import queue
+# import datetime
+# import queue
 
 from abc import ABCMeta, abstractmethod
 
-from event import FillEvent, OrderEvent
+from .event import FillEvent, OrderEvent
 
 
 class ExecutionHandler(object):

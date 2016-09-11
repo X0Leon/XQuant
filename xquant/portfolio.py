@@ -3,28 +3,21 @@
 """
 Portfolio抽象基类/类
 头寸跟踪、订单管理、风险/收益分析等
-TODO: 可以大大扩展
-
-SignalEvent -> Portfolio -> OrderEvent
-                         <- FillEvent
-    处理Signal，产生Order，接受Fill以更新仓位
-
-可以看出，Portfolio是最复杂的部分，各种Event可以与之交互
 
 @author: X0Leon
-@version: 0.1
+@version: 0.2.0a
 """
 
-import datetime
-import numpy as np
+# import datetime
+# import numpy as np
 import pandas as pd
-import queue
+# import queue
 
 from abc import ABCMeta, abstractmethod
-from math import floor # 返回下舍整数值
+# from math import floor # 返回下舍整数值
 
-from event import OrderEvent, FillEvent
-from performance import create_sharpe_ratio, create_drawdowns
+from .event import OrderEvent
+from .performance import create_sharpe_ratio, create_drawdowns
 
 class Portfolio(object):
     """
@@ -48,7 +41,7 @@ class Portfolio(object):
         raise NotImplementedError("未实现update_fill()，此方法是必须的！")
 
 
-# 一个简单的组合订单管理的类
+# 一个基础的组合订单管理的类
 class BasicPortfolio(Portfolio):
     """
     NaivePortfolio发送orders给brokerage对象，这里简单地使用固定的数量，
@@ -108,10 +101,7 @@ class BasicPortfolio(Portfolio):
         d['total'] = self.initial_capital
         return d
 
-    ######################  “市场的脉搏” ##############################################
-    # 市场发生交易，我们需要更新持仓市值：1）实时交易可以解析交易商的数据；
-    # 2）回测时采取模拟的方法，这里用上一根k线的收盘价*头寸，这对于日内交易相对较为准确
-
+    # 市场发生交易，我们需要更新持仓市值
     def update_timeindex(self, event):
         """
         用于追踪新的持仓市值
@@ -201,9 +191,9 @@ class BasicPortfolio(Portfolio):
 
         symbol = signal.symbol
         direction = signal.signal_type
-        # strength = signal.strength 尚未定义此属性
+        # strength = signal.strength 信号强度
         # mkt_quantity = floor(100 * strength)
-        mkt_quantity = 2000
+        mkt_quantity = 1000
         cur_quantity = self.current_positions[symbol]
         order_type = 'MKT'
 
@@ -229,8 +219,6 @@ class BasicPortfolio(Portfolio):
 
 
     ### 股票曲线的功能函数，用于performance的计算
-    # TODO：
-    #     设置performance的module，强化可视化的功能
     def create_equity_curve_dataframe(self):
         """
         从all_holdings的字典列表中生成pandas的DataFrame
@@ -259,6 +247,6 @@ class BasicPortfolio(Portfolio):
                  ("Max Drawdown", "%0.2f%%" % (max_dd * 100.0)),
                  ("Drawdown Duration", "%d" % dd_duration)]
 
-        self.equity_curve.to_csv('equity.csv')
+        # self.equity_curve.to_csv('equity.csv')
         return stats
 

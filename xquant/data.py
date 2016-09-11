@@ -5,17 +5,17 @@ DataHandler抽象基类
 数据处理不区分历史数据还是实时数据
 
 @author: X0Leon
-@version: 0.1
+@version: 0.2.0a
 """
 
 import datetime
 import os
-import numpy as np
+# import numpy as np
 import pandas as pd
 
 from abc import ABCMeta, abstractmethod
 
-from event import MarketEvent
+from .event import MarketEvent
 
 
 class DataHandler(object):
@@ -100,11 +100,6 @@ class CSVDataHandler(DataHandler):
         for s in self.symbol_list:
             # 合并index后的股票数据，所有股票的index相同
             # method指明对缺失值的填充方式，pad/ffill是用向前取值
-            # 疑问1：
-            #     是否应该做向后取值？这要看datetime是升序还是降序排列
-            # 疑问2：
-            #     iterrows()并不快！要想办法取代，itertuples() ？
-            #     不过这里直接返回了iterrows生成器，可以惰性计算，格式（index, rows[...]）的生成器
             self.symbol_data[s] = self.symbol_data[s].reindex(index=comb_index, method='pad').iterrows()
 
     def _get_new_bar(self, symbol):
@@ -176,11 +171,3 @@ class TushareDataHandler(DataHandler):
 class HDF5DataHandler(DataHandler):
     pass
 
-
-if __name__ == "__main__":
-    import queue
-
-    events = queue.Queue()
-    csv_dh = CSVDataHandler(events, 'd:/thinkquant/XQuant/data', ['600008', '600018'])
-    csv_dh.update_bars()
-    print(csv_dh.get_latest_bars('600008', N=10))

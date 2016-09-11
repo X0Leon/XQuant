@@ -4,7 +4,7 @@
 评估策略优劣的功能函数模块
 
 @author: X0Leon
-@version: 0.1
+@version: 0.2.0a
 """
 
 import numpy as np
@@ -27,7 +27,7 @@ def create_drawdowns(pnl):
     return: drawdown, duration
     """
     # 计算累计收益，记录最高收益（High Water Mark）
-    hwm = [0]
+    hwm = [0] # 历史最大值序列
 
     idx = pnl.index
     drawdown = pd.Series(index=idx)

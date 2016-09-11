@@ -6,21 +6,14 @@ Strategy对象计算市场数据，产生signal给Portfolio对象
 market data by DataHandler -> Strategy -> signal for Portfolio
 
 @author: X0Leon
-@version: 0.1
-
-TODO:
-    技术指标的加入，可以支持TA-lib
+@version: 0.2.0a
 """
 
-import datetime
-import numpy as np
 import pandas as pd
-import queue
-# Python 2.x为Queue，判断：is_py2 = sys.version[0] == '2'
 
 from abc import ABCMeta, abstractmethod
 
-from event import SignalEvent
+from .event import SignalEvent
 
 class Strategy(object):
     """
@@ -109,7 +102,7 @@ class MovingAverageCrossStrategy(Strategy):
     def _calculate_initial_bought(self):
         """
         添加key到bought字典，将所有股票的值设为False，意指尚未持有
-        TODO：是否可以用组合中虚拟账户来监控，stragety只管发信号呢？
+        TODO：是否可以用组合中虚拟账户来监控，strategy只管发信号呢？
         """
         bought = {}
         for s in self.symbol_list:

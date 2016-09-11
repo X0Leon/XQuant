@@ -4,7 +4,7 @@
 Event类，在数据、组合、交易所（或模拟交易所）间流动的事件
 
 @author: X0Leon
-@version: 0.1
+@version: 0.2.0a
 """
 
 
@@ -108,22 +108,3 @@ class FillEvent(Event):
         self.direction = direction
         self.fill_cost = fill_cost
         self.commission = commission
-
-    #     if commission is None:
-    #         self.commission = self.calculate_commission()
-    #     else:
-    #         self.commission = commission
-    #
-    # def calculate_commission(self):
-    #     """
-    #     计算费率（即交易成本）的功能函数
-    #     """
-    #     full_cost = 1.0
-    #     if self.direction == 'BUY':
-    #         full_cost = max(5.0, 3/10000.0 * self.quantity * self.fill_cost)
-    #     elif self.direction == 'SELL':
-    #         full_cost = self.quantity * self.fill_cost * 1/1000.0 \
-    #                     + max(5.0, 3/10000.0 * self.quantity * self.fill_cost)
-    #     else:
-    #         pass
-    #     return full_cost
