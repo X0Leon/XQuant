@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from .event import SignalEvent
-from .data import DataHandler, CSVDataHandler
+from .data import *
 from .strategy import Strategy
 from .portfolio import BasicPortfolio
 from .execution import SimulatedExecutionHandler

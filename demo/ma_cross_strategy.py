@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 """
-使用双均线策略测试backtest模块），及底层核心模块
+使用双均线策略测试
 
 @author: X0Leon
 @version: 0.2
@@ -52,35 +52,35 @@ class MovingAverageCrossStrategy(Strategy):
         """
         if event.type == 'MARKET':
             for s in self.symbol_list:
-                bars = self.bars.get_latest_bars(s, N=self.long_window) # 元组列表
+                bars = self.bars.get_latest_bars(s, N=self.long_window)  # 元组列表
                 if bars is not None and bars != [] and len(bars) >= self.long_window:
                     cols = ['symbol','datetime','open','high','low','close','volume']
                     df = pd.DataFrame(bars,columns=cols)
-                    df['MA_long'] = pd.rolling_mean(df['close'],self.long_window,min_periods=1)
-                    df['MA_short'] = pd.rolling_mean(df['close'],self.short_window,min_periods=1)
+                    df['MA_long'] = pd.rolling_mean(df['close'], self.long_window, min_periods=1)
+                    df['MA_short'] = pd.rolling_mean(df['close'], self.short_window, min_periods=1)
                     if float(df['MA_long'][-1:]) < float(df['MA_short'][-1:]) and \
                                     float(df['MA_long'][-2:-1]) > float(df['MA_short'][-2:-1]):
                         if not self.bought[s]:
-                            signal = SignalEvent(bars[-1][0],bars[-1][-1], 'LONG')
+                            signal = SignalEvent(bars[-1][0],bars[-1][1], 'LONG')
                             self.events.put(signal)
                             self.bought[s] = True
                     elif float(df['MA_long'][-1:]) < float(df['MA_short'][-1:]) and \
                                     float(df['MA_long'][-2:-1]) < float(df['MA_short'][-2:-1]):
                         if self.bought[s]:
-                            signal = SignalEvent(bars[-1][0], bars[-1][0], 'EXIT')
+                            signal = SignalEvent(bars[-1][0], bars[-1][1], 'EXIT')
                             self.events.put(signal)
                             self.bought[s] = False
 
 
 if __name__ == '__main__':
-    csv_dir = os.path.join(os.path.dirname(os.getcwd()),'testdata')# testdata地址
+    csv_dir = os.path.join(os.path.dirname(os.getcwd()), 'testdata')  # testdata文件夹路径
     symbol_list = ['600008', '600018']
     initial_capital = 100000.0
     heartbeat = 0.0
     start_date = datetime.datetime(2015, 11, 2, 0, 0)
 
     backtest = Backtest(csv_dir, symbol_list, initial_capital, heartbeat,
-        start_date, CSVDataHandler, SimulatedExecutionHandler,
-        BasicPortfolio, MovingAverageCrossStrategy)
-    backtest.simulate_trading()
+                        start_date, CSVDataHandler, SimulatedExecutionHandler,
+                        BasicPortfolio, MovingAverageCrossStrategy)
 
+    backtest.simulate_trading()

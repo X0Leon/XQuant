@@ -31,21 +31,25 @@ class MarketEvent(Event):
 class SignalEvent(Event):
     """
     Signal事件类
-    处理：从Stategy对象发送Signal，由下游的Portfolio对象接受
+    处理：从Strategy对象发送Signal，由下游的Portfolio对象接受
     """
 
-    def __init__(self, symbol, datatime, signal_type):
+    def __init__(self, symbol, datetime, signal_type, strategy_id=1, strength=1.0):
         """
         初始化SignalEvent对象
         参数：
         symbol: 股票代号字符串，统一使用名称或者数字字符串中的一种
-        datatime：signal产生的时间戳
+        datetime：signal产生的时间戳
         signal_type: 多头('LONG')、空头('SHORT')、平仓('EXIT')
+        strategy_id: 策略的独特id，可以多策略并行
+        strength: 用于给出交易数量的建议的信号强度，例如配对交易
         """
         self.type =  'SIGNAL'
         self.symbol = symbol
-        self.datatime = datatime
+        self.datetime = datetime
         self.signal_type = signal_type
+        self.strategy_id = strategy_id
+        self.strength = strength
 
 
 class OrderEvent(Event):

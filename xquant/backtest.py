@@ -19,7 +19,8 @@ class Backtest(object):
     """
     def __init__(self, csv_dir, symbol_list, initial_capital,
                  heartbeat, start_date, data_handler,
-                 execution_handler, portfolio, strategy):
+                 execution_handler, portfolio, strategy,
+                 periods=252):
         """
         初始化回测
         csv_dir: CSV数据文件夹目录
@@ -43,6 +44,8 @@ class Backtest(object):
         self.portfolio_cls = portfolio
         self.strategy_cls = strategy
 
+        self.periods = periods
+
         self.events = queue.Queue()
 
         self.signals = 0
@@ -58,7 +61,7 @@ class Backtest(object):
         self.data_handler = self.data_handler_cls(self.events, self.csv_dir, self.symbol_list)
         self.strategy = self.strategy_cls(self.data_handler, self.events)
         self.portfolio = self.portfolio_cls(self.data_handler, self.events, self.start_date,
-                                            self.initial_capital)
+                                            self.initial_capital, self.periods)
         self.execution_handler = self.execution_handler_cls(self.data_handler, self.events)
 
     def _run_backtest(self):

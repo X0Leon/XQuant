@@ -19,6 +19,7 @@ from abc import ABCMeta, abstractmethod
 from .event import OrderEvent
 from .performance import create_sharpe_ratio, create_drawdowns
 
+
 class Portfolio(object):
     """
     Portfolio类处理头寸和持仓市值
@@ -47,7 +48,7 @@ class BasicPortfolio(Portfolio):
     NaivePortfolio发送orders给brokerage对象，这里简单地使用固定的数量，
     不进行任何风险管理或仓位管理（这是不现实的！），仅供测试使用
     """
-    def __init__(self, bars, events, start_date, initial_capital=1.0e5):
+    def __init__(self, bars, events, start_date, initial_capital=1.0e5,periods=252):
         """
         使用bars和event队列初始化portfolio，同时包含其实时间和初始资本
         参数：
@@ -55,18 +56,20 @@ class BasicPortfolio(Portfolio):
         events: Event queue对象
         start_date: 组合其实的时间，实际上就是指某个k线
         initial_capital: 起始的资本
+        periods: 交易周期数，日频数据为252, 60分钟为252*4, 1分钟为252*4*60，用于计算年化收益
         """
         self.bars = bars
         self.events = events
         self.symbol_list = self.bars.symbol_list
         self.start_date = start_date
         self.initial_capital = initial_capital
+        self.periods = periods
 
-        self.all_positions = self.construct_all_positions() # 字典列表
+        self.all_positions = self.construct_all_positions()  # 字典列表
         self.current_positions = dict((k,v) for k,v in [(s,0) for s in self.symbol_list]) # 字典
 
-        self.all_holdings = self.construct_all_holdings() # 字典列表
-        self.current_holdings = self.construct_current_holdings() # 字典
+        self.all_holdings = self.construct_all_holdings()  # 字典列表
+        self.current_holdings = self.construct_current_holdings()  # 字典
 
     def construct_all_positions(self):
         """
@@ -118,7 +121,7 @@ class BasicPortfolio(Portfolio):
         for s in self.symbol_list:
             dp[s] = self.current_positions[s]
         # 添加当前头寸
-        self.all_positions.append(dp) # 注意all_positions是k bar周期的字典列表
+        self.all_positions.append(dp)  # 注意all_positions是k bar周期的字典列表
         # 更新持仓，字典
         dh = dict((k,v) for k,v in [(s,0) for s in self.symbol_list])
         dh['datetime'] = bars[self.symbol_list[0]][0][1]
@@ -134,7 +137,6 @@ class BasicPortfolio(Portfolio):
 
         self.all_holdings.append(dh)
 
-     
     # (1) 与FillEvent对象交互: 通过两个工具函数来实现Portfolio抽象基类的update_fill()
 
     def update_position_from_fill(self, fill):
@@ -164,7 +166,7 @@ class BasicPortfolio(Portfolio):
             fill_dir = -1
 
         # fill_cost = self.bars.get_latest_bars(fill.symbol)[0][5] # close price
-        fill_cost = fill.fill_cost # 成交价通过模拟交易所发回的Fill事件中读取
+        fill_cost = fill.fill_cost  # 成交价通过模拟交易所发回的Fill事件中读取
         cost = fill_dir * fill_cost * fill.quantity
 
         self.current_holdings[fill.symbol] += cost
@@ -193,7 +195,11 @@ class BasicPortfolio(Portfolio):
         direction = signal.signal_type
         # strength = signal.strength 信号强度
         # mkt_quantity = floor(100 * strength)
-        mkt_quantity = 1000
+        if symbol.startswith(('0','3','6')):
+            mkt_quantity = 1000  # 股票10手
+        else:
+            mkt_quantity = 1  # 期货1手
+
         cur_quantity = self.current_positions[symbol]
         order_type = 'MKT'
 
@@ -217,17 +223,18 @@ class BasicPortfolio(Portfolio):
             order_event = self.generate_naive_order(event)
             self.events.put(order_event)
 
-
-    ### 股票曲线的功能函数，用于performance的计算
+    # ====================================
+    # 股票曲线的功能函数，用于performance的计算
+    # ====================================
     def create_equity_curve_dataframe(self):
         """
         从all_holdings的字典列表中生成pandas的DataFrame
         展示profit and loss (PnL)
         """
         curve = pd.DataFrame(self.all_holdings)
-        curve.set_index('datetime', inplace=True) # 就地修改，不生成新对象
-        curve['returns'] = curve['total'].pct_change() # 计算百分比变化
-        curve['equity_curve'] = (1.0 + curve['returns']).cumprod() # 计算累计值
+        curve.set_index('datetime', inplace=True)  # 就地修改，不生成新对象
+        curve['returns'] = curve['total'].pct_change()  # 计算百分比变化
+        curve['equity_curve'] = (1.0 + curve['returns']).cumprod()  # 计算累计值
         self.equity_curve = curve
 
     def output_summary_stats(self):
@@ -238,7 +245,7 @@ class BasicPortfolio(Portfolio):
         returns = self.equity_curve['returns']
         pnl = self.equity_curve['equity_curve']
 
-        sharpe_ratio = create_sharpe_ratio(returns, periods=252)
+        sharpe_ratio = create_sharpe_ratio(returns, periods=self.periods)
         drawdown, max_dd, dd_duration = create_drawdowns(pnl)
         self.equity_curve['drawdown'] = drawdown
 

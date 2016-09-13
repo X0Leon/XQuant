@@ -131,6 +131,6 @@ class MovingAverageCrossStrategy(Strategy):
 
                     elif float(df['MA_long'][-1:]) > float(df['MA_short'][-1:]) and float(df['MA_long'][-2:-1]) \
                                                 < float(df['MA_short'][-2:-1]) and self.bought[s]:
-                        signal = SignalEvent(bars[-1][0], bars[-1][0], 'EXIT')
+                        signal = SignalEvent(bars[-1][0], bars[-1][1], 'EXIT')
                         self.events.put(signal)
                         self.bought[s] = False

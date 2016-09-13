@@ -15,7 +15,7 @@ def create_sharpe_ratio(returns, periods=252):
     计算策略夏普率，基准为0，未使用无风险利率信息
     参数：
     returns: pandas Series格式的每个bar周期的百分比收益
-    periods: 一天的25,2，每小时的252*4，每分钟的为252*4*60
+    periods: 一天的252，每小时的252*4，每分钟的为252*4*60
     """
     return np.sqrt(periods) * (np.mean(returns))/np.std(returns)
 
