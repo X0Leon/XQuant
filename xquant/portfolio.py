@@ -48,7 +48,7 @@ class BasicPortfolio(Portfolio):
     NaivePortfolio发送orders给brokerage对象，这里简单地使用固定的数量，
     不进行任何风险管理或仓位管理（这是不现实的！），仅供测试使用
     """
-    def __init__(self, bars, events, start_date, initial_capital=1.0e5,periods=252):
+    def __init__(self, bars, events, start_date, initial_capital=1.0e5, periods=252):
         """
         使用bars和event队列初始化portfolio，同时包含其实时间和初始资本
         参数：
@@ -193,9 +193,9 @@ class BasicPortfolio(Portfolio):
 
         symbol = signal.symbol
         direction = signal.signal_type
-        # strength = signal.strength 信号强度
+        # strength = signal.strength
         # mkt_quantity = floor(100 * strength)
-        if symbol.startswith(('0','3','6')):
+        if symbol.startswith(('0', '3', '6')):
             mkt_quantity = 1000  # 股票10手
         else:
             mkt_quantity = 1  # 期货1手
@@ -204,14 +204,19 @@ class BasicPortfolio(Portfolio):
         order_type = 'MKT'
 
         if direction == 'LONG' and cur_quantity == 0: 
-            order = OrderEvent(symbol, order_type, mkt_quantity, 'BUY')
-        if direction == 'SHORT' and cur_quantity == 0:
-            order = OrderEvent(symbol, order_type, mkt_quantity, 'SELL')
-
-        if direction == 'EXIT' and cur_quantity > 0:
+            order = OrderEvent(symbol, order_type, mkt_quantity, 'BUY')  # 开多仓
+        elif direction == 'LONG' and cur_quantity < 0:
+            order = OrderEvent(symbol, order_type, 2*mkt_quantity, 'BUY')  # 空翻多
+        elif direction == 'SHORT' and cur_quantity == 0:
+            order = OrderEvent(symbol, order_type, mkt_quantity, 'SELL')  # 开空仓
+        elif direction == 'SHORT' and cur_quantity > 0:
+            order = OrderEvent(symbol, order_type, 2*mkt_quantity, 'SELL')  # 多翻空
+        elif direction == 'EXIT' and cur_quantity > 0:
             order = OrderEvent(symbol, order_type, abs(cur_quantity), 'SELL')
-        if direction == 'EXIT' and cur_quantity < 0:
+        elif direction == 'EXIT' and cur_quantity < 0:
             order = OrderEvent(symbol, order_type, abs(cur_quantity), 'BUY')
+        else:
+            pass
 
         return order
 
@@ -250,7 +255,7 @@ class BasicPortfolio(Portfolio):
         self.equity_curve['drawdown'] = drawdown
 
         stats = [("Total Return", "%0.2f%%" % ((total_return - 1.0) * 100.0)),
-                 ("Sharpe Ration", "%0.2f" % sharpe_ratio),
+                 ("Sharpe Ratio", "%0.2f" % sharpe_ratio),
                  ("Max Drawdown", "%0.2f%%" % (max_dd * 100.0)),
                  ("Drawdown Duration", "%d" % dd_duration)]
 

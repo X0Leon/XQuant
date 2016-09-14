@@ -87,7 +87,6 @@ class Backtest(object):
                         if event.type == 'MARKET':
                             self.strategy.calculate_signals(event)
                             self.portfolio.update_timeindex(event)
-
                         elif event.type == 'SIGNAL':
                             self.signals += 1
                             self.portfolio.update_signal(event)
@@ -112,7 +111,7 @@ class Backtest(object):
         stats = self.portfolio.output_summary_stats()
 
         print('生成资产曲线..')
-        print(self.portfolio.equity_curve.tail(10))
+        #print(self.portfolio.equity_curve.tail(10))
         pprint.pprint(stats)
 
         print('策略产生交易信号数: %s' % self.signals)

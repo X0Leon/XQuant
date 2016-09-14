@@ -74,7 +74,7 @@ class MovingAverageCrossStrategy(Strategy):
 
 if __name__ == '__main__':
     csv_dir = os.path.join(os.path.dirname(os.getcwd()), 'testdata')  # testdata文件夹路径
-    symbol_list = ['600008', '600018']
+    symbol_list = ['600008']
     initial_capital = 100000.0
     heartbeat = 0.0
     start_date = datetime.datetime(2015, 11, 2, 0, 0)
