@@ -9,7 +9,7 @@
 
 # import datetime
 # import time
-import pprint
+import pandas as pd
 import queue
 
 
@@ -20,7 +20,7 @@ class Backtest(object):
     def __init__(self, csv_dir, symbol_list, initial_capital,
                  heartbeat, start_date, data_handler,
                  execution_handler, portfolio, strategy,
-                 periods=252):
+                 commission=None, slippage=None):
         """
         初始化回测
         csv_dir: CSV数据文件夹目录
@@ -32,6 +32,9 @@ class Backtest(object):
         execution_handler: (Class) 处理order/fill的类
         portfolio: (Class) 虚拟账户，追踪组合头寸等信息的类
         strategy: (Class) 根据市场数据生成信号的策略类
+        periods: 调仓周期的长度，日频为252个交易日，分钟频率为252*4*60
+        commission: 交易费率供模拟交易所使用：如为None则自行计算；如暂不考虑，请设置为0
+        slippage: 滑点，待加入
         """
         self.csv_dir = csv_dir
         self.symbol_list = symbol_list
@@ -44,7 +47,8 @@ class Backtest(object):
         self.portfolio_cls = portfolio
         self.strategy_cls = strategy
 
-        self.periods = periods
+        self.commission = commission
+        self.slippage = slippage
 
         self.events = queue.Queue()
 
@@ -61,8 +65,10 @@ class Backtest(object):
         self.data_handler = self.data_handler_cls(self.events, self.csv_dir, self.symbol_list)
         self.strategy = self.strategy_cls(self.data_handler, self.events)
         self.portfolio = self.portfolio_cls(self.data_handler, self.events, self.start_date,
-                                            self.initial_capital, self.periods)
-        self.execution_handler = self.execution_handler_cls(self.data_handler, self.events)
+                                            self.initial_capital)
+        self.execution_handler = self.execution_handler_cls(self.data_handler, self.events,
+                                                            commission=self.commission,
+                                                            slippage=self.slippage)
 
     def _run_backtest(self):
         """
@@ -99,31 +105,24 @@ class Backtest(object):
                             self.fills += 1
                             self.portfolio.update_fill(event)
 
-            #time.sleep(self.heartbeat)
+            # time.sleep(self.heartbeat)
 
     def _output_performance(self):
         """
-        输出策略的回测结果
+        输出策略的回测结果，待添加
         """
-        self.portfolio.create_equity_curve_dataframe()
-
         print('生成回测结果...')
-        stats = self.portfolio.output_summary_stats()
-
-        print('生成资产曲线..')
-        #print(self.portfolio.equity_curve.tail(10))
-        pprint.pprint(stats)
-
         print('策略产生交易信号数: %s' % self.signals)
         print('组合产生委托订单数: %s' % self.orders)
         print('回测交易成交订单数: %s' % self.fills)
 
     def simulate_trading(self):
         """
-        模拟回测并输出结果
+        模拟回测并输出结果，返回资金曲线和头寸的DataFrame
         """
         self._run_backtest()
         self._output_performance()
 
-
-
+        positions = pd.DataFrame(self.portfolio.all_positions).set_index('datetime')
+        holdings = pd.DataFrame(self.portfolio.all_holdings).set_index('datetime')
+        return positions, holdings

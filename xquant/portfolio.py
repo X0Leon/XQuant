@@ -8,16 +8,9 @@ Portfolio抽象基类/类
 @version: 0.2.0a
 """
 
-# import datetime
-# import numpy as np
-import pandas as pd
-# import queue
-
 from abc import ABCMeta, abstractmethod
-# from math import floor # 返回下舍整数值
-
+import pandas as pd
 from .event import OrderEvent
-from .performance import create_sharpe_ratio, create_drawdowns
 
 
 class Portfolio(object):
@@ -48,7 +41,7 @@ class BasicPortfolio(Portfolio):
     NaivePortfolio发送orders给brokerage对象，这里简单地使用固定的数量，
     不进行任何风险管理或仓位管理（这是不现实的！），仅供测试使用
     """
-    def __init__(self, bars, events, start_date, initial_capital=1.0e5, periods=252):
+    def __init__(self, bars, events, start_date, initial_capital=1.0e5):
         """
         使用bars和event队列初始化portfolio，同时包含其实时间和初始资本
         参数：
@@ -56,14 +49,13 @@ class BasicPortfolio(Portfolio):
         events: Event queue对象
         start_date: 组合其实的时间，实际上就是指某个k线
         initial_capital: 起始的资本
-        periods: 交易周期数，日频数据为252, 60分钟为252*4, 1分钟为252*4*60，用于计算年化收益
+        periods: 平均交易周期数，日频数据为252, 60分钟为252*4, 1分钟为252*4*60，用于计算年化收益
         """
         self.bars = bars
         self.events = events
         self.symbol_list = self.bars.symbol_list
         self.start_date = start_date
         self.initial_capital = initial_capital
-        self.periods = periods
 
         self.all_positions = self.construct_all_positions()  # 字典列表
         self.current_positions = dict((k,v) for k,v in [(s,0) for s in self.symbol_list]) # 字典
@@ -196,7 +188,7 @@ class BasicPortfolio(Portfolio):
         # strength = signal.strength
         # mkt_quantity = floor(100 * strength)
         if symbol.startswith(('0', '3', '6')):
-            mkt_quantity = 1000  # 股票10手
+            mkt_quantity = 100  # 股票1手（100股）
         else:
             mkt_quantity = 1  # 期货1手
 
@@ -227,38 +219,3 @@ class BasicPortfolio(Portfolio):
         if event.type == 'SIGNAL':
             order_event = self.generate_naive_order(event)
             self.events.put(order_event)
-
-    # ====================================
-    # 股票曲线的功能函数，用于performance的计算
-    # ====================================
-    def create_equity_curve_dataframe(self):
-        """
-        从all_holdings的字典列表中生成pandas的DataFrame
-        展示profit and loss (PnL)
-        """
-        curve = pd.DataFrame(self.all_holdings)
-        curve.set_index('datetime', inplace=True)  # 就地修改，不生成新对象
-        curve['returns'] = curve['total'].pct_change()  # 计算百分比变化
-        curve['equity_curve'] = (1.0 + curve['returns']).cumprod()  # 计算累计值
-        self.equity_curve = curve
-
-    def output_summary_stats(self):
-        """
-        生成组合的一些统计信息
-        """
-        total_return = self.equity_curve['equity_curve'][-1]
-        returns = self.equity_curve['returns']
-        pnl = self.equity_curve['equity_curve']
-
-        sharpe_ratio = create_sharpe_ratio(returns, periods=self.periods)
-        drawdown, max_dd, dd_duration = create_drawdowns(pnl)
-        self.equity_curve['drawdown'] = drawdown
-
-        stats = [("Total Return", "%0.2f%%" % ((total_return - 1.0) * 100.0)),
-                 ("Sharpe Ratio", "%0.2f" % sharpe_ratio),
-                 ("Max Drawdown", "%0.2f%%" % (max_dd * 100.0)),
-                 ("Drawdown Duration", "%d" % dd_duration)]
-
-        # self.equity_curve.to_csv('equity.csv')
-        return stats
-

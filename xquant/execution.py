@@ -43,15 +43,19 @@ class SimulatedExecutionHandler(ExecutionHandler):
     简单的模拟交易所
     未考虑等待时间、滑点、部分成交等
     """
-    def __init__(self, bars, events):
+    def __init__(self, bars, events, commission=None, slippage=None):
         """
         初始化
         参数：
         bars: DataHandler结果bars，为了对回测时成交价做模拟处理
         events: Event队列
+        commission: 费率，若为None则通过_calculate_commission计算
+        slippage: 滑点模型，待考虑（TODO：加入滑点）
         """
         self.bars = bars
         self.events = events
+        self.commission  = commission
+        self.slippage = slippage
 
     def _calculate_commission(self, event):
         """
@@ -95,12 +99,18 @@ class SimulatedExecutionHandler(ExecutionHandler):
         参数：
         event: 含有order信息的Event对象
         """
+        if self.commission is None:
+            self.commission = self._calculate_commission(event)
+
         if event.type == 'ORDER':
             # 模拟设置成交价和手续费，暂时用k bar的close价
             # 如果考虑滑点、冲击成本等，可以update到下一根k bar的价格处理
             fill_cost = self.bars.get_latest_bars(event.symbol)[0][5]
+            if event.symbol.startswith('I'): # 股指期货每点300元
+                fill_cost = fill_cost * 300
+
             timeindex = self.bars.get_latest_bars(event.symbol)[0][1]
             fill_event = FillEvent(timeindex, event.symbol, 'SimulatorExchange',
                                    event.quantity, event.direction, fill_cost,
-                                   commission=self._calculate_commission(event))
+                                   commission=self.commission)
             self.events.put(fill_event)
