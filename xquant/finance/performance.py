@@ -4,7 +4,7 @@
 评估策略优劣的功能函数模块
 
 @author: X0Leon
-@version: 0.2.0a
+@version: 0.3.0
 """
 
 import numpy as np
@@ -65,8 +65,6 @@ def create_drawdowns_slow(pnl):
         drawdown[t] = hwm[t] - pnl[t]
         duration[t] = (0 if drawdown[t] == 0  else duration[t-1]+1)
     return drawdown, drawdown.max(), duration.max()
-
-
 
 def output_summary_stats(curve):
     """

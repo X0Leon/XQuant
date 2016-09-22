@@ -5,7 +5,7 @@ Portfolio抽象基类/类
 头寸跟踪、订单管理、风险/收益分析等
 
 @author: X0Leon
-@version: 0.2.0a
+@version: 0.3.0
 """
 
 from abc import ABCMeta, abstractmethod
