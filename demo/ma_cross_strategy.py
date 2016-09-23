@@ -58,14 +58,14 @@ class MovingAverageCrossStrategy(Strategy):
                     df = pd.DataFrame(bars,columns=cols)
                     df['MA_long'] = pd.rolling_mean(df['close'], self.long_window, min_periods=1)
                     df['MA_short'] = pd.rolling_mean(df['close'], self.short_window, min_periods=1)
-                    if float(df['MA_long'][-1:]) < float(df['MA_short'][-1:]) and \
-                                    float(df['MA_long'][-2:-1]) > float(df['MA_short'][-2:-1]):
+                    if df['MA_long'].iloc[-1] < df['MA_short'].iloc[-1] and \
+                                    df['MA_long'].iloc[-2] > df['MA_short'].iloc[-2]:
                         if not self.bought[s]:
                             signal = SignalEvent(bars[-1][0],bars[-1][1], 'LONG')
                             self.events.put(signal)
                             self.bought[s] = True
-                    elif float(df['MA_long'][-1:]) < float(df['MA_short'][-1:]) and \
-                                    float(df['MA_long'][-2:-1]) < float(df['MA_short'][-2:-1]):
+                    elif df['MA_long'].iloc[-1] < df['MA_short'].iloc[-1] and \
+                                    df['MA_long'].iloc[-2] < df['MA_short'].iloc[-2]:
                         if self.bought[s]:
                             signal = SignalEvent(bars[-1][0], bars[-1][1], 'EXIT')
                             self.events.put(signal)
@@ -83,4 +83,4 @@ if __name__ == '__main__':
                         start_date, CSVDataHandler, SimulatedExecutionHandler,
                         BasicPortfolio, MovingAverageCrossStrategy)
 
-    backtest.simulate_trading()
+    positions, holdings = backtest.simulate_trading()

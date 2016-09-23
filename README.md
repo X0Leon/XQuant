@@ -8,7 +8,8 @@ A股市场股票、股指期货的量化投资回测框架。当前版本：Vers
 
 * Python 3.x
 * Numpy
-* pandas
+* Pandas
+* Matplotlib
 
 后续可能使用的库：Tushare/TA-lib
 
@@ -16,9 +17,7 @@ A股市场股票、股指期货的量化投资回测框架。当前版本：Vers
 
 使用：
 
-API：http://sciencefan.org/doku.php/finance:xquant-api (计划转到Github wiki)
-
-示例: 参见demo文件夹中的移动双均线策略（Moving Average Cross Strategy）
+API示例: 参考demo文件夹中的移动双均线策略（Moving Average Cross Strategy）
 
 Changelog:
 
@@ -34,4 +33,4 @@ Changelog:
 
 注：非重要的子版本不列出，一般为Bugfix或者小的文本/注释调整
 
-Copyright (c) 2016 X0Leon (Leon L. Zhang)
+Copyright (c) 2016 X0Leon (Leon L. Zhang) Email: pku09zl[at]gamil.com 
