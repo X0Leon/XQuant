@@ -6,7 +6,7 @@ A股市场股票、股指期货的量化投资回测框架。当前版本：Vers
 
 依赖库：
 
-* Python 3.x
+* Python 3.x (建议3.5)
 * Numpy
 * Pandas
 * Matplotlib
@@ -33,4 +33,4 @@ Changelog:
 
 注：非重要的子版本不列出，一般为Bugfix或者小的文本/注释调整
 
-Copyright (c) 2016 X0Leon (Leon L. Zhang) Email: pku09zl[at]gamil.com 
+Copyright (c) 2016 X0Leon (Leon L. Zhang) Email: pku09zl[at]gmail.com 
