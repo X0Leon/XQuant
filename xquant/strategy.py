@@ -32,7 +32,7 @@ class Strategy(object):
 
 
 
-########################################## 以下为使用的例子 #####################################
+######################### 以下为使用的例子，请直接参考demo文件夹 ###############
 # 例1：买入并持有的策略
 class BuyAndHoldStrategy(Strategy):
     """
@@ -121,8 +121,8 @@ class MovingAverageCrossStrategy(Strategy):
                     # 转换成DataFrame计算，代码量少一些，暂不考虑速度
                     cols = ['symbol','datetime','open','high','low','close','volume']
                     df = pd.DataFrame(bars,columns= cols)
-                    df['MA_long'] = pd.rolling_mean(df['close'],self.long_window, min_periods=1)
-                    df['MA_short'] = pd.rolling_mean(df['close'],self.short_window, min_periods=1)
+                    df['MA_long'] = df['close'].rolling(center=False, window=self.long_window, min_periods=1).mean()
+                    df['MA_short'] = df['close'].rolling(center=False, window=self.short_window, min_periods=1).mean()
                     if float(df['MA_long'][-1:]) < float(df['MA_short'][-1:]) and  float(df['MA_long'][-2:-1]) \
                                                 > float(df['MA_short'][-2:-1]) and not self.bought[s]:
                         signal = SignalEvent(bars[-1][0], bars[-1][1], 'LONG')

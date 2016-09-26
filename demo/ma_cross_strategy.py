@@ -56,8 +56,8 @@ class MovingAverageCrossStrategy(Strategy):
                 if bars is not None and bars != [] and len(bars) >= self.long_window:
                     cols = ['symbol','datetime','open','high','low','close','volume']
                     df = pd.DataFrame(bars,columns=cols)
-                    df['MA_long'] = pd.rolling_mean(df['close'], self.long_window, min_periods=1)
-                    df['MA_short'] = pd.rolling_mean(df['close'], self.short_window, min_periods=1)
+                    df['MA_long'] = df['close'].rolling(center=False, window=self.long_window, min_periods=1).mean()
+                    df['MA_short'] = df['close'].rolling(center=False, window=self.short_window, min_periods=1).mean()
                     if df['MA_long'].iloc[-1] < df['MA_short'].iloc[-1] and \
                                     df['MA_long'].iloc[-2] > df['MA_short'].iloc[-2]:
                         if not self.bought[s]:
