@@ -81,6 +81,7 @@ if __name__ == '__main__':
 
     backtest = Backtest(csv_dir, symbol_list, initial_capital, heartbeat,
                         start_date, CSVDataHandler, SimulatedExecutionHandler,
-                        BasicPortfolio, MovingAverageCrossStrategy)
+                        BasicPortfolio, MovingAverageCrossStrategy,
+                        long_window=20, short_window=10)
 
     positions, holdings = backtest.simulate_trading()

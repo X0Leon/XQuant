@@ -20,7 +20,7 @@ class Backtest(object):
     def __init__(self, csv_dir, symbol_list, initial_capital,
                  heartbeat, start_date, data_handler,
                  execution_handler, portfolio, strategy,
-                 commission=None, slippage=None):
+                 commission=None, slippage=None, **paras):
         """
         初始化回测
         csv_dir: CSV数据文件夹目录
@@ -32,7 +32,6 @@ class Backtest(object):
         execution_handler: (Class) 处理order/fill的类
         portfolio: (Class) 虚拟账户，追踪组合头寸等信息的类
         strategy: (Class) 根据市场数据生成信号的策略类
-        periods: 调仓周期的长度，日频为252个交易日，分钟频率为252*4*60
         commission: 交易费率供模拟交易所使用：如为None则自行计算；如暂不考虑，请设置为0
         slippage: 滑点，待加入
         """
@@ -52,6 +51,8 @@ class Backtest(object):
 
         self.events = queue.Queue()
 
+        self.paras = paras
+
         self.signals = 0
         self.orders = 0
         self.fills = 0
@@ -63,7 +64,7 @@ class Backtest(object):
         实例化类，得到data_handler(bars),strategy,portfolio(port),execution_handler(broker)对象
         """
         self.data_handler = self.data_handler_cls(self.events, self.csv_dir, self.symbol_list)
-        self.strategy = self.strategy_cls(self.data_handler, self.events)
+        self.strategy = self.strategy_cls(self.data_handler, self.events, **self.paras)
         self.portfolio = self.portfolio_cls(self.data_handler, self.events, self.start_date,
                                             self.initial_capital)
         self.execution_handler = self.execution_handler_cls(self.data_handler, self.events,
