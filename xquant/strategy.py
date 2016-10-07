@@ -6,14 +6,13 @@ Strategy对象计算市场数据，产生signal给Portfolio对象
 market data by DataHandler -> Strategy -> signal for Portfolio
 
 @author: X0Leon
-@version: 0.2.0a
+@version: 0.3.0
 """
 
 import pandas as pd
-
 from abc import ABCMeta, abstractmethod
-
 from .event import SignalEvent
+
 
 class Strategy(object):
     """
@@ -31,7 +30,6 @@ class Strategy(object):
         raise NotImplementedError("未实现calculate_signals()，此方法是必须的！")
 
 
-
 ######################### 以下为使用的例子，请直接参考demo文件夹 ###############
 # 例1：买入并持有的策略
 class BuyAndHoldStrategy(Strategy):
@@ -39,6 +37,7 @@ class BuyAndHoldStrategy(Strategy):
     最简单的例子：对所以股票持多头策略
     用于：测试代码；作为benchmark
     """
+
     def __init__(self, bars, events):
         """
         初始化买入持有策略
@@ -50,7 +49,7 @@ class BuyAndHoldStrategy(Strategy):
         self.symbol_list = self.bars.symbol_list
         self.events = events
 
-        self.bought = self._calculate_initial_bought() # 字典
+        self.bought = self._calculate_initial_bought()  # 字典
 
     def _calculate_initial_bought(self):
         """
@@ -71,12 +70,11 @@ class BuyAndHoldStrategy(Strategy):
         if event.type == 'MARKET':
             for s in self.symbol_list:
                 bars = self.bars.get_latest_bars(s, N=1)
-                if bars is not None and bars != []:
-                    if self.bought[s] == False:
-                        # 格式(Symbol, Datetime, Type = LONG, SHORT or EXIT)
-                        signal = SignalEvent(bars[0][0], bars[0][1], 'LONG')
-                        self.events.put(signal)
-                        self.bought[s] = True
+                if bars is not None and bars != [] and self.bought[s] is False:
+                    # 格式(Symbol, Datetime, Type = LONG, SHORT or EXIT)
+                    signal = SignalEvent(bars[0][0], bars[0][1], 'LONG')
+                    self.events.put(signal)
+                    self.bought[s] = True
 
 
 # 例2：移动双均线策略（最简单的动量策略）
@@ -84,6 +82,7 @@ class MovingAverageCrossStrategy(Strategy):
     """
     移动双均线策略
     """
+
     def __init__(self, bars, events, long_window=10, short_window=5):
         """
         初始化移动双均线策略
@@ -94,8 +93,8 @@ class MovingAverageCrossStrategy(Strategy):
         self.bars = bars
         self.symbol_list = self.bars.symbol_list
         self.events = events
-        self.long_window = long_window # 长期均线
-        self.short_window = short_window # 短期均线
+        self.long_window = long_window  # 长期均线
+        self.short_window = short_window  # 短期均线
 
         self.bought = self._calculate_initial_bought()
 
@@ -116,21 +115,21 @@ class MovingAverageCrossStrategy(Strategy):
         """
         if event.type == 'MARKET':
             for s in self.symbol_list:
-                bars = self.bars.get_latest_bars(s, N=self.long_window) # 元组的列表
+                bars = self.bars.get_latest_bars(s, N=self.long_window)  # 元组的列表
                 if bars is not None and bars != [] and len(bars) >= self.long_window:
                     # 转换成DataFrame计算，代码量少一些，暂不考虑速度
-                    cols = ['symbol','datetime','open','high','low','close','volume']
-                    df = pd.DataFrame(bars,columns= cols)
+                    cols = ['symbol', 'datetime', 'open', 'high', 'low', 'close', 'volume']
+                    df = pd.DataFrame(bars, columns=cols)
                     df['MA_long'] = df['close'].rolling(center=False, window=self.long_window, min_periods=1).mean()
                     df['MA_short'] = df['close'].rolling(center=False, window=self.short_window, min_periods=1).mean()
-                    if float(df['MA_long'][-1:]) < float(df['MA_short'][-1:]) and  float(df['MA_long'][-2:-1]) \
-                                                > float(df['MA_short'][-2:-1]) and not self.bought[s]:
+                    if df['MA_long'].iloc[-1] < df['MA_short'].iloc[-1] and df['MA_long'].iloc[-2] \
+                            > df['MA_short'].iloc[-2] and not self.bought[s]:
                         signal = SignalEvent(bars[-1][0], bars[-1][1], 'LONG')
                         self.events.put(signal)
                         self.bought[s] = True
 
-                    elif float(df['MA_long'][-1:]) > float(df['MA_short'][-1:]) and float(df['MA_long'][-2:-1]) \
-                                                < float(df['MA_short'][-2:-1]) and self.bought[s]:
+                    elif df['MA_long'].iloc[-1] > df['MA_short'].iloc[-1] and df['MA_long'].iloc[-2] \
+                            < df['MA_short'].iloc[-2] and self.bought[s]:
                         signal = SignalEvent(bars[-1][0], bars[-1][1], 'EXIT')
                         self.events.put(signal)
                         self.bought[s] = False
