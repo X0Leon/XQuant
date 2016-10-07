@@ -35,7 +35,7 @@ class ExecutionHandler(object):
         参数：
         event: 包含order信息的事件
         """
-        raise NotImplementedError("未实现excute_order()，此方法是必须的！")
+        raise NotImplementedError("未实现execute_order()，此方法是必须的！")
 
 
 class SimulatedExecutionHandler(ExecutionHandler):

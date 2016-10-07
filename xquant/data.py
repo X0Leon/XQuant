@@ -5,7 +5,7 @@ DataHandler抽象基类
 数据处理不区分历史数据还是实时数据
 
 @author: X0Leon
-@version: 0.2.0a
+@version: 0.3.0
 """
 
 import datetime
@@ -20,7 +20,7 @@ from .event import MarketEvent
 
 class DataHandler(object):
     """
-    DataHandler抽象基本，不允许直接实例化，只用于继承
+    DataHandler抽象基类，不允许直接实例化，只用于继承
     继承的DataHandler对象用于对每个symbol生成bars序列（OLHCV）
     这里不区分历史数据和实时交易数据
     """
@@ -53,19 +53,17 @@ class CSVDataHandler(DataHandler):
     def __init__(self, events, csv_dir, symbol_list):
         """
         初始化历史数据的处理，假设文件以股票代码+csv格式存储，如600008.csv
-        日期升序排列，仅包含'datetime','open','high','low','close','volume'
+        仅包含'datetime','open','high','low','close','volume'（建议日期升序排列）
         参数：
         events: 事件队列（Event Queue）
         cdv_dir：CSV文件的绝对路径，如"d:/data/"或者使用“d:\\..."
         symbol_list: 股票代码列表，如['600008', '600018']
-        dfmt: 用于_get_new_bar()函数中转换datetime类型所用的日期字符串格式
-              日间一般是：'%Y-%m-%d'，日内可能是：'%Y-%m-%d %H:%M:%S'
         """
         self.events = events
         self.csv_dir = csv_dir
         self.symbol_list = symbol_list
 
-        self.symbol_data = {}  # key为股票代码，value为数据df iterrows()迭代器
+        self.symbol_data = {}  # key为股票代码，value为数据df的iterrows()迭代器
         self.latest_symbol_data = {}
         self.continue_backtest = True
 
@@ -75,12 +73,10 @@ class CSVDataHandler(DataHandler):
         """
         从数据文件夹中打开CSV文件，转换成pandas的DataFrames格式，union所有股票index, 即datetime
         用_开头说明这是一个仅供内部使用的方法（私有方法）
-            'datetime','open','high','low','close','volume'
-            日期升序排列
+            'datetime','open','high','low','close','volume' 日期升序排列
         """
         comb_index = None  # datetime作为index，不同股票之间取并集，对数据做相应的填充
         for s in self.symbol_list:
-            # 直接用pd.read_csv()
             self.symbol_data[s] = pd.read_csv(
                 os.path.join(self.csv_dir, '%s.csv' % s),
                 header=0, index_col=0, parse_dates=True,
@@ -104,10 +100,9 @@ class CSVDataHandler(DataHandler):
     def _get_new_bar(self, symbol):
         """
         返回最新的bar，格式为(symbol, datetime, open, low, high, close, volume)
-        生成器，每次调用生成一个新的bar，直到数据最后
+        生成器，每次调用生成一个新的bar，直到数据最后，在update_bars()中调用
         """
         for b in self.symbol_data[symbol]:
-            # 测试日间数据，日内的话 '%Y-%m-%d %H:%M:%S'
             yield tuple([symbol, b[0], b[1][0], b[1][1], b[1][2], b[1][3], b[1][4]])
 
     # 实现ABC CSVDataHandler中方法get_latest_bars()
@@ -158,7 +153,18 @@ class CSVDataHandler(DataHandler):
             else:
                 if bar is not None:
                     self.latest_symbol_data[s].append(bar)
-        self.events.put(MarketEvent())  # events是queue结构，put()和get()为进出队列
+
+        # 更新bar，推送MarketEvent；若不加以判断则会使最后一根bar多put一次
+        if self.continue_backtest:
+            self.events.put(MarketEvent())
+
+
+class TushareDataHandler(DataHandler):
+    pass
+
+
+class HDF5DataHandler(DataHandler):
+    pass
 
 
 class DictDFDataHandler(DataHandler):
@@ -253,11 +259,3 @@ class DictDFDataHandler(DataHandler):
                 if bar is not None:
                     self.latest_symbol_data[s].append(bar)
         self.events.put(MarketEvent())
-
-
-class TushareDataHandler(DataHandler):
-    pass
-
-
-class HDF5DataHandler(DataHandler):
-    pass

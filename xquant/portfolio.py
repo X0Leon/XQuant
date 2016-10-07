@@ -2,14 +2,13 @@
 
 """
 Portfolio抽象基类/类
-头寸跟踪、订单管理、风险/收益分析等
+头寸跟踪、订单管理，可以进一步做收益分析、风险管理等
 
 @author: X0Leon
 @version: 0.3.0
 """
 
 from abc import ABCMeta, abstractmethod
-import pandas as pd
 from .event import OrderEvent
 
 
@@ -38,18 +37,17 @@ class Portfolio(object):
 # 一个基础的组合订单管理的类
 class BasicPortfolio(Portfolio):
     """
-    NaivePortfolio发送orders给brokerage对象，这里简单地使用固定的数量，
+    BasicPortfolio发送orders给brokerage对象，这里简单地使用固定的数量，
     不进行任何风险管理或仓位管理（这是不现实的！），仅供测试使用
     """
     def __init__(self, bars, events, start_date, initial_capital=1.0e5):
         """
-        使用bars和event队列初始化portfolio，同时包含其实时间和初始资本
+        使用bars和event队列初始化portfolio，同时包含起始时间和初始资本
         参数：
         bars: DataHandler对象，使用当前市场数据
         events: Event queue对象
-        start_date: 组合其实的时间，实际上就是指某个k线
+        start_date: 组合起始的时间
         initial_capital: 起始的资本
-        periods: 平均交易周期数，日频数据为252, 60分钟为252*4, 1分钟为252*4*60，用于计算年化收益
         """
         self.bars = bars
         self.events = events
@@ -57,10 +55,10 @@ class BasicPortfolio(Portfolio):
         self.start_date = start_date
         self.initial_capital = initial_capital
 
-        self.all_positions = self.construct_all_positions()  # 字典列表
+        self.all_positions = self.construct_all_positions()  # 字典的列表
         self.current_positions = dict((k,v) for k,v in [(s,0) for s in self.symbol_list]) # 字典
 
-        self.all_holdings = self.construct_all_holdings()  # 字典列表
+        self.all_holdings = self.construct_all_holdings()  # 字典的列表
         self.current_holdings = self.construct_current_holdings()  # 字典
 
     def construct_all_positions(self):
@@ -119,7 +117,7 @@ class BasicPortfolio(Portfolio):
         dh['datetime'] = bars[self.symbol_list[0]][0][1]
         dh['cash'] =  self.current_holdings['cash']
         dh['commission'] = self.current_holdings['commission']
-        dh['total'] = self.current_holdings['total']
+        dh['total'] = self.current_holdings['cash']
 
         for s in self.symbol_list:
             # 估计持仓市值
@@ -143,7 +141,7 @@ class BasicPortfolio(Portfolio):
         if fill.direction == 'SELL':
             fill_dir = -1
 
-        self.current_positions[fill.symbol] += fill_dir*fill.quantity
+        self.current_positions[fill.symbol] += fill_dir * fill.quantity
 
     def update_holdings_from_fill(self, fill):
         """
@@ -164,7 +162,7 @@ class BasicPortfolio(Portfolio):
         self.current_holdings[fill.symbol] += cost
         self.current_holdings['commission'] += fill.commission
         self.current_holdings['cash'] -= (cost + fill.commission)
-        self.current_holdings['total'] -= (cost + fill.commission)
+        self.current_holdings['total'] -= fill.commission
 
     def update_fill(self, event):
         """

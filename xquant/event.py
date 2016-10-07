@@ -44,7 +44,7 @@ class SignalEvent(Event):
         strategy_id: 策略的独特id，可以多策略并行
         strength: 用于给出交易数量的建议的信号强度，例如配对交易
         """
-        self.type =  'SIGNAL'
+        self.type = 'SIGNAL'
         self.symbol = symbol
         self.datetime = datetime
         self.signal_type = signal_type
@@ -56,7 +56,7 @@ class OrderEvent(Event):
     """
     Order事件类
     处理：发送一个Order给执行（execution）系统，
-    其包含：symbol, type (market or limit, 即市价委托还是限价委托), quantity, direction
+    其包含：symbol, type (Market or Limit, 即市价委托还是限价委托), quantity, direction
     """
 
     def __init__(self, symbol, order_type, quantity, direction):
@@ -80,7 +80,7 @@ class OrderEvent(Event):
         输出Order中的值
         """
         print("Order: Symbol=%s, Type=%s, Quantity=%s, Direction=%s" %
-            (self.symbol, self.order_type,self.quantity, self.direction))
+              (self.symbol, self.order_type, self.quantity, self.direction))
 
 
 class FillEvent(Event):
@@ -93,12 +93,11 @@ class FillEvent(Event):
     def __init__(self, timeindex, symbol, exchange, quantity, direction,
                  fill_cost, commission):
         """
-        初始化FillEvent对象，设定好参数
-        如果费率没有提供，按照券商佣金万3来
+        初始化FillEvent对象，成交信息
         参数：
         timeindex: 成交时的bar，其实就是成交的那根k线
         symbol: 成交的交易代码
-        exchange: 成交的交易所(exchange)
+        exchange: 交易所(exchange)
         quantity: 成交数量
         direction: 成交的方向
         fill_cost：成交价
