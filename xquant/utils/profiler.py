@@ -98,11 +98,10 @@ def do_cprofile(func):
     return profiled_func
 
 
-
 try:
     from line_profiler import LineProfiler
 
-    def do_profile(follow=[]):
+    def do_profile(follow=None):
         """
         使用line_profiler创建性能分析装饰器
         follow列表选择要追踪的函数，如果为空，则全部分析
@@ -119,10 +118,12 @@ try:
 
         result = expensive_function()
         """
+        if follow is None:
+            follow = list()
         def inner(func):
             def profiled_func(*args, **kwargs):
+                profiler = LineProfiler()
                 try:
-                    profiler = LineProfiler()
                     profiler.add_function(func)
                     for f in follow:
                         profiler.add_function(f)
@@ -134,7 +135,7 @@ try:
         return inner
 
 except ImportError:
-    def do_profile(follow=[]):
+    def do_profile(follow=None):
         """
         line_profile未安装情况下的备选装饰器，什么也不做
         """

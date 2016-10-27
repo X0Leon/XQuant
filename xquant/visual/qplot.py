@@ -4,6 +4,7 @@ import matplotlib.dates as dt
 import matplotlib.ticker as mticker
 
 import pandas as pd
+from xquant.finance.performance import perform_metrics
 
 
 def plot_bars(quotes, df, dfmt='%Y-%m-%d', width=0.1):

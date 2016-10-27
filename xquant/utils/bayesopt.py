@@ -76,7 +76,7 @@ def unique_rows(a):
     参数：
     a: 需要剔除重复行的array
     返回:
-    mask of unique rows
+    独一无二的行的掩膜（mask）
     """
     order = np.lexsort(a.T)
     reorder = np.argsort(order)
@@ -188,7 +188,7 @@ class BayesianOptimization(object):
                                   thetaU=1e0 * np.ones(self.dim),
                                   random_start=30)
 
-        # Utility喊出 
+        # Utility函数
         self.util = None
         # 输出字典
         self.res = dict()
@@ -240,14 +240,14 @@ class BayesianOptimization(object):
         if all([e == param_tup_lens[0] for e in param_tup_lens]):
             pass
         else:
-            raise ValueError('The number of initialization points for every parameter must be same.')
+            raise ValueError('Number of initialization points for every parameter must be same.')
 
-        # list of lists
+        # 列表的列表：2D
         all_points = []
         for key in self.keys:
             all_points.append(points_dict[key])
 
-        # transpose
+        # 转置列表的列表，如[[1,2],[3,4]] -> [[1,3],[2,4]]
         self.init_points = list(map(list, zip(*all_points)))
 
     def initialize(self, points_dict):
@@ -276,13 +276,7 @@ class BayesianOptimization(object):
         for row, key in enumerate(self.pbounds.keys()):
             self.bounds[row] = self.pbounds[key]
 
-    def maximize(self,
-                 init_points=5,
-                 n_iter=25,
-                 acq='ei',
-                 kappa=2.576,
-                 xi=0.0,
-                 **gp_params):
+    def maximize(self, init_points=5, n_iter=25, acq='ei', kappa=2.576, xi=0.0, **gp_params):
         """
         主要的优化方法
         参数：
@@ -308,10 +302,7 @@ class BayesianOptimization(object):
         self.gp.fit(self.X[ur], self.Y[ur])
 
         # 寻找acquisition function最大时的参数，argmax
-        x_max = acq_max(ac=self.util.utility,
-                        gp=self.gp,
-                        y_max=y_max,
-                        bounds=self.bounds)
+        x_max = acq_max(ac=self.util.utility, gp=self.gp, y_max=y_max, bounds=self.bounds)
         # 迭代寻优
         for i in range(n_iter):
             # 测试x_max是否重复，如果是，则随机重挑一个
@@ -324,7 +315,7 @@ class BayesianOptimization(object):
             self.X = np.vstack((self.X, x_max.reshape((1, -1))))
             self.Y = np.append(self.Y, self.f(**dict(zip(self.keys, x_max))))
 
-            # 更新GP.
+            # 更新GP
             ur = unique_rows(self.X)
             self.gp.fit(self.X[ur], self.Y[ur])
 
@@ -359,6 +350,7 @@ if __name__ == '__main__':
     bo.initialize({-2: {'x': 1, 'y': 0}, -1.251: {'x': 1, 'y': 1.5}})
 
     # 做好上面的各种初始化工作，我们就可以调用maximize方法来优化！
+    # 注意：总的函数运算次数要大于优化迭代次数，因为初始化时调用函数计算random+explore个数据点
     bo.maximize(init_points=5, n_iter=15, kappa=3.29)
     # 最大值存在self.res中
     print(bo.res['max'])
