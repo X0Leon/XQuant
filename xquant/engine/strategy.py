@@ -6,7 +6,7 @@ Strategy对象计算市场数据，产生signal给Portfolio对象
 market data by DataHandler -> Strategy -> signal for Portfolio
 
 @author: X0Leon
-@version: 0.3.0
+@version: 0.3
 """
 
 import pandas as pd
@@ -17,7 +17,7 @@ from .event import SignalEvent
 class Strategy(object):
     """
     Strategy抽象基类
-    此类及其继承类通过对Bars(SDOHLCV)（由DataHandler对象生成）处理产生Signal对象
+    此类及其继承类通过对Bars(SD-OHLCV)（由DataHandler对象生成）处理产生Signal对象
     Strategy类对历史数据和实时数据均有效，实际上它对数据来源不知晓，直接从queue对象获取bar元组
     """
     __metaclass__ = ABCMeta

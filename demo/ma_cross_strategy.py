@@ -4,7 +4,7 @@
 使用双均线策略测试
 
 @author: X0Leon
-@version: 0.2
+@version: 0.3
 """
 
 import os
@@ -50,12 +50,12 @@ class MovingAverageCrossStrategy(Strategy):
         当短期均线（如5日线）上穿长期均线（如10日线），买入
         反之，卖出；不做空
         """
-        if event.type == 'MARKET':
+        if event.type == 'BAR':
             for s in self.symbol_list:
                 bars = self.bars.get_latest_bars(s, N=self.long_window)  # 元组列表
                 if bars is not None and bars != [] and len(bars) >= self.long_window:
                     cols = ['symbol','datetime','open','high','low','close','volume']
-                    df = pd.DataFrame(bars,columns=cols)
+                    df = pd.DataFrame(bars, columns=cols)
                     df['MA_long'] = df['close'].rolling(center=False, window=self.long_window, min_periods=1).mean()
                     df['MA_short'] = df['close'].rolling(center=False, window=self.short_window, min_periods=1).mean()
                     if df['MA_long'].iloc[-1] < df['MA_short'].iloc[-1] and \
@@ -73,15 +73,16 @@ class MovingAverageCrossStrategy(Strategy):
 
 
 if __name__ == '__main__':
-    csv_dir = os.path.join(os.path.dirname(os.getcwd()), 'testdata')  # testdata文件夹路径
+    csv_dir = os.path.join(os.path.dirname(os.getcwd()), 'demo/testdata')  # testdata文件夹路径
     symbol_list = ['600008']
     initial_capital = 100000.0
     heartbeat = 0.0
-    start_date = datetime.datetime(2015, 11, 2, 0, 0)
+    start_date = datetime.datetime(2015, 10, 2, 0, 0)
 
     backtest = Backtest(csv_dir, symbol_list, initial_capital, heartbeat,
                         start_date, CSVDataHandler, SimulatedExecutionHandler,
                         BasicPortfolio, MovingAverageCrossStrategy,
-                        long_window=20, short_window=10)
+                        long_window=10, short_window=5)
 
     positions, holdings = backtest.simulate_trading()
+    print(holdings.head())

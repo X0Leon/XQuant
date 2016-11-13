@@ -4,7 +4,7 @@
 回测的主要接口
 
 @author: X0Leon
-@version: 0.3.0
+@version: 0.3
 """
 
 # import datetime
@@ -97,7 +97,8 @@ class Backtest(object):
                     break
                 else:
                     if event is not None:
-                        if event.type == 'MARKET':
+                        if event.type == 'BAR':  # or event.type == 'TICK'
+                            # print(event.bar)
                             self.strategy.calculate_signals(event)
                             self.portfolio.update_timeindex(event)
                         elif event.type == 'SIGNAL':

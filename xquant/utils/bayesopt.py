@@ -12,7 +12,8 @@ Bayesian Optimization
 """
 
 import numpy as np
-from sklearn.gaussian_process import GaussianProcess
+from sklearn.gaussian_process import GaussianProcessRegressor
+from sklearn.gaussian_process.kernels import Matern
 from scipy.optimize import minimize
 from scipy.stats import norm
 
@@ -21,6 +22,7 @@ class UtilityFunction(object):
     """
     计算acquisition function，即下一次迭代选择的依据
     """
+
     def __init__(self, kind, kappa, xi):
         """
         UCB（Upper Confidence Bound）需要kappa参数
@@ -45,27 +47,25 @@ class UtilityFunction(object):
         """
         GP Upper Confidence Bound, (Srinivas, 2010)
         """
-        mean, var = gp.predict(x, eval_MSE=True)
-        return mean + kappa * np.sqrt(var)
+        mean, std = gp.predict(x, return_std=True)
+        return mean + kappa * std
 
     @staticmethod
     def _ei(x, gp, y_max, xi):
         """
         Expected Improvement, (Mockus, 1978)
         """
-        mean, var = gp.predict(x, eval_MSE=True)
-        var = np.maximum(var, 1e-9 + 0 * var)  # 避免方差为零的点
-        z = (mean - y_max - xi) / np.sqrt(var)
-        return (mean - y_max - xi) * norm.cdf(z) + np.sqrt(var) * norm.pdf(z)
+        mean, std = gp.predict(x, return_std=True)
+        z = (mean - y_max - xi) / std
+        return (mean - y_max - xi) * norm.cdf(z) + std * norm.pdf(z)
 
     @staticmethod
     def _poi(x, gp, y_max, xi):
         """
         Probability of Improvement, (Kushner, 1964)
         """
-        mean, var = gp.predict(x, eval_MSE=True)
-        var = np.maximum(var, 1e-9 + 0 * var)   # 避免方差为零的点
-        z = (mean - y_max - xi) / np.sqrt(var)
+        mean, std = gp.predict(x, return_std=True)
+        z = (mean - y_max - xi) / std
         return norm.cdf(z)
 
 
@@ -117,44 +117,7 @@ def acq_max(ac, gp, y_max, bounds):
     return np.clip(x_max, bounds[:, 0], bounds[:, 1])
 
 
-def matern52(theta, d):
-    """
-    Matern 5/2 correlation model.
-    自动相关性确定（ARD）Matern 5/2的核函数
-        theta, d --> r(theta, d) = (1+sqrt(5)*r + 5/3*r^2)*exp(-sqrt(5)*r)       
-                               n
-            其中 r = sqrt(   sum  (d_i)^2 / (theta_i)^2 )
-                             i = 1
-    参考：
-    https://arxiv.org/pdf/1206.2944.pdf (第4页，公式4、5)
-    https://en.wikipedia.org/wiki/Mat%C3%A9rn_covariance_function
-
-    参数：
-    theta: 提供自动相关性参数的数组，shape 1 (isotropic)；n (anisotropic)
-    d: shape为(n_eval, n_features)的数据，提供模型中所需的|x-x'|的距离
-    返回：
-    r : shape (n_eval, )的数组， 包含ARD模型中的值
-    """
-    theta = np.asarray(theta, dtype=np.float)
-    d = np.asarray(d, dtype=np.float)
-    
-    if d.ndim > 1:
-        n_features = d.shape[1]
-    else:
-        n_features = 1
-        
-    if theta.size == 1:
-        r = np.sqrt(np.sum(d ** 2, axis=1)) / theta[0]
-    elif theta.size != n_features:
-        raise ValueError("Length of theta must be 1 or %s" % n_features)
-    else:
-        r = np.sqrt(np.sum(d ** 2 / theta.reshape(1, n_features) ** 2, axis=1))
-        
-    return (1 + np.sqrt(5)*r + 5/3.*r ** 2) * np.exp(-np.sqrt(5)*r)
-
-
 class BayesianOptimization(object):
-
     def __init__(self, f, pbounds):
         """
         参数：
@@ -180,13 +143,9 @@ class BayesianOptimization(object):
 
         # 迭代次数i
         self.i = 0
-        
+
         # scikit-learn中的GaussianProcess
-        self.gp = GaussianProcess(corr=matern52,
-                                  theta0=np.random.uniform(0.001, 0.05, self.dim),
-                                  thetaL=1e-5 * np.ones(self.dim),
-                                  thetaU=1e0 * np.ones(self.dim),
-                                  random_start=30)
+        self.gp = GaussianProcessRegressor(kernel=Matern(), n_restarts_optimizer=25)
 
         # Utility函数
         self.util = None
@@ -340,10 +299,12 @@ class BayesianOptimization(object):
 
 
 if __name__ == '__main__':
+    import time
+    start = time.time()
     # 使用示例
     # 传入需要最大化的函数和其参数的范围来创建BO对象
     # 这里用简单的二次函数，假装我们不知道其形式
-    bo = BayesianOptimization(lambda x, y: -x**2 - (y - 1)**2 + 1, {'x': (-4, 4), 'y': (-3, 3)})
+    bo = BayesianOptimization(lambda x, y: -x ** 2 - (y - 1) ** 2 + 1, {'x': (-4, 4), 'y': (-3, 3)})
     # 输入我们想要BO算法计算的值，参数为key、参数值为value的字典
     bo.explore({'x': [-1, 3], 'y': [-2, 2]})
     # 如果有先验的信息，即使不准确（如-2和-1.251），也一并丢给BO优化器
@@ -355,13 +316,16 @@ if __name__ == '__main__':
     # 最大值存在self.res中
     print(bo.res['max'])
 
-    ################ 
+    ################
     # 如果我们不是很满意，增加点需要优化的值，改改参数，继续优化
     bo.explore({'x': [0.6], 'y': [-0.23]})
     # 修改高斯过程会大大改变优化行为
-    gp_params = {'corr': 'absolute_exponential',
-                 'nugget': 1e-5}
+    gp_params = {'kernel': None,
+                 'alpha': 1e-5}
     # 使用不同的acquisition function
     bo.maximize(n_iter=5, acq='ei', **gp_params)
     print(bo.res['max'])
     print(bo.res['all'])
+
+    end = time.time()
+    print(end-start)

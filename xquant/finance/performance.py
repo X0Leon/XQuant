@@ -102,7 +102,7 @@ def perform_metrics(holdings, periods=252):
     SR = np.sqrt(periods) * np.mean(holdings['return']) / np.std(holdings['return'])  # 夏普率
 
     holdings['cum_max'] = holdings['equity_curve'].cummax()
-    holdings['drawdown'] = - (holdings['cum_max'] / holdings['equity_curve'] - 1)  # 回撤向量
+    holdings['drawdown'] = holdings['equity_curve'] / holdings['cum_max'] - 1  # 回撤向量
     max_dd = holdings['drawdown'].min()  # 最大回撤
 
     # i = holdings['drawdown'].index.get_loc(holdings['drawdown'].idxmax())  # 获取回撤周期的结束row序号
@@ -111,6 +111,27 @@ def perform_metrics(holdings, periods=252):
     return holdings, ret, SR, max_dd
 
 
+def detail_orders(backtest, positions, holdings):
+    """
+    获取详细交割单，建议单品种，多品种时portfolio为合计值
+    参数：
+    bakctest, positionsh和holdings为回测后得到的对象
+    返回：
+    字典：键为symbol，值为行情数据和详细交割单合并后的DataFrame
 
+    示例：
+    detail_orders = detail_orders(backtest, positions, holdings)['RB']
+    使用pandas自带的可视化，
+        detail_orders['RB'].plot.area(stacked=False, ylim=(-1.2, 1.2), alpha=0.3)
+        detail_orders['close'].plot(secondary_y=True)
+    """
+    orders = dict()
+    data_dict = backtest.data_handler.latest_symbol_data
+    holdings2 = holdings.copy()  # 避免在原holdings上修改
+    for symb in data_dict.keys():
+        data = pd.DataFrame(data_dict[symb], columns=['symbol', 'datetime', 'open', 'high', 'low', 
+                                                      'close', 'volume']).set_index('datetime')
+        holdings2.columns = [holdings.columns[i]+'_h' if i==0 else h for i,h in enumerate(holdings.columns)]
+        orders[symb] = data.join([positions, holdings2], how='outer').ix[1:,:]  # 第一行NaN，或用dropna/或how='inner'去除
 
-
+    return orders

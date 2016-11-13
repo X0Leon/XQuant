@@ -4,28 +4,60 @@
 Event类，在数据、组合、交易所（或模拟交易所）间流动的事件
 
 @author: X0Leon
-@version: 0.2.0a
+@version: 0.3
 """
 
 
 class Event(object):
     """
     Event类是基类
-    供子类（Market, Signal, Order, Fill）继承
-    事件类是event-driven型回测框架的核心
+    供子类（Tick, Bar, Signal, Order, Fill）继承
     """
     pass
 
 
-class MarketEvent(Event):
+class TickEvent(Event):
     """
-    Market事件类
+    Tick事件类 (Basic Market Data)
+    实验性引入，因为实时的bid/ask和历史的tick不一样，需再思考优化
+    参数：
+    tick: (symbol, datetime, bid, ask)的四元tuple
     """
-    def __init__(self):
+    def __init__(self, tick):
+        self.type = 'TICK'
+        self.tick = tick
+
+    def __str__(self):
+        format_tick = "Type: %s, Symbol: %s, Datetime: %s, Bid: %s, Ask: %s" % (
+                      self.type, self.tick[0], self.tick[1], self.tick[2], self.tick[3])
+        return format_tick
+
+    def __repr__(self):
+        return str(self)
+
+
+class BarEvent(Event):
+    """
+    Bar事件类 (Basic Market Data)
+    """
+    def __init__(self, bar):
         """
         初始化
+        参数：
+        bar: SD-OHLCV的七元tuple，用namedtuple?
         """
-        self.type = 'MARKET'
+        self.type = 'BAR'
+        self.bar = bar
+
+    def __str__(self):
+        format_bar = "Type: %s, Symbol: %s, Datetime: %s, " \
+                     "Open: %s, High: %s, Low: %s, Close: %s, Volume: %s" % (
+                         self.type, self.bar[0], self.bar[1],
+                         self.bar[2], self.bar[3], self.bar[4], self.bar[5], self.bar[6])
+        return format_bar
+
+    def __repr__(self):
+        return str(self)
 
 
 class SignalEvent(Event):

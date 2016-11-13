@@ -5,7 +5,7 @@ Portfolio抽象基类/类
 头寸跟踪、订单管理，可以进一步做收益分析、风险管理等
 
 @author: X0Leon
-@version: 0.3.0
+@version: 0.3
 """
 
 from abc import ABCMeta, abstractmethod
@@ -15,7 +15,8 @@ from .event import OrderEvent
 class Portfolio(object):
     """
     Portfolio类处理头寸和持仓市值
-    基本bar来计算，可以是秒、分钟、5分钟、30分钟、60分钟等的K线
+    目前以Bar来计算，可以是秒、分钟、5分钟、30分钟、60分钟等的K线
+    考虑支持Tick?
     """
     __metaclass__ = ABCMeta
 
@@ -99,7 +100,7 @@ class BasicPortfolio(Portfolio):
         """
         用于追踪新的持仓市值
         向持仓头寸中加入新的纪录，也就是刚结束的这根完整k bar
-        从events队列中使用MarketEvent
+        从events队列中使用BarEvent
         """
         bars = {}
         for sym in self.symbol_list:
