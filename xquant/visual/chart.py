@@ -23,7 +23,8 @@ def candlestick(df, **kwargs):
     df : DataFrame，按顺序保存'datetime'(index),'open', 'high', 'low', 'close'和'volume'列
     title : str, 可选
     fname : str, 可选，'.png' or '.pdf'后缀的图片名
-    events : DataFrame, 可选，相同index，最多四列，无事件则用np.nan
+    events : DataFrame, 可选，与df相同index，最多四列，无事件则用np.nan
+    observers: DataFrame，可选，与df相同index，最多两列
     band : DataFrame, 可选，需要包含'upper'和'lower'两列，例如布林带指标
     line : DataFrame, 可选，例如移动平均线
     """
@@ -39,7 +40,7 @@ def close(df, **kwargs):
 
 def _make_chart(df, chartfn, **kwargs):
     fig = plt.figure()
-    ax1 = plt.subplot2grid((5, 4), (0, 0), rowspan=4, colspan=4)
+    ax1 = plt.subplot2grid((6, 4), (1, 0), rowspan=4, colspan=4)
     ax1.grid(True)
     plt.ylabel('Price')
     plt.setp(plt.gca().get_xticklabels(), visible=False)
@@ -51,7 +52,7 @@ def _make_chart(df, chartfn, **kwargs):
     if 'events' in kwargs:
         _plot_events(kwargs['events'])
 
-    ax2 = plt.subplot2grid((5, 4), (4, 0), sharex=ax1, rowspan=1, colspan=4)
+    ax2 = plt.subplot2grid((6, 4), (5, 0), sharex=ax1, rowspan=1, colspan=4)
     volume = df['volume']
     pos = df['open'] - df['close'] <= 0  # mask
     neg = df['open'] - df['close'] > 0
@@ -60,13 +61,21 @@ def _make_chart(df, chartfn, **kwargs):
     #ax2.bar(df.index, df.loc[:, 'volume'],align='center')
     ax2.xaxis.set_major_locator(mticker.MaxNLocator(12))
     ax2.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d'))
-    if len(df.index) <= 128:  # 建议的时间序列长度，太久则渲染很慢
+    if len(df.index) <= 500:  # 建议的时间序列长度，太久则渲染很慢
         ax2.xaxis.set_minor_locator(mdates.DayLocator())
     ax2.yaxis.set_ticklabels([])
     ax2.grid(True)
     plt.ylabel('Volume')
     plt.xlabel('DateTime')
     plt.setp(plt.gca().get_xticklabels(), rotation=45, horizontalalignment='right')
+    ax3 = plt.subplot2grid((6, 4), (0, 0), sharex=ax1, rowspan=1, colspan=4)
+    if 'observers' in kwargs:
+        _plot_observers(kwargs['observers'])
+    ax3.yaxis.set_ticklabels([])
+    #ax3.yaxis.tick_right()
+    ax3.grid(True)
+    ax3.xaxis.set_ticklabels([])
+    ax3.set_ylabel('Observe')
     plt.subplots_adjust(left=.09, bottom=.18, right=.94, top=0.94, wspace=.20, hspace=0)
     if 'title' in kwargs:
         plt.suptitle(kwargs['title'])
@@ -101,3 +110,13 @@ def _plot_events(events):
     n_events = min({len(events.columns), len(colors)})
     for i in range(n_events):
         plt.plot(events.index, events.iloc[:, i].values, colors[i], alpha=0.8, ms=12.0)
+
+def _plot_observers(observers):
+    colors = ['r', 'b']
+    n_observers = min({len(observers.columns), len(colors)})
+    for i in range(n_observers):
+        ob = observers.iloc[:, i].values
+        plt.plot(observers.index, ob, colors[i], lw=0.5)
+        plt.ylim(((1.1 if min(ob) < 0 else -1.1) * min(ob), 1.1 * max(ob)))
+        if min(ob) < 0 < max(ob):
+            plt.axhline(y=0.0, color = 'k', lw=0.5)
