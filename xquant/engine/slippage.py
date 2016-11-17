@@ -3,7 +3,6 @@
 """
 Slippage 滑点模型
 New in V0.3.4
-可以参考思路：https://github.com/quantopian/zipline/blob/master/zipline/finance/slippage.py
 
 @author: X0Leon
 @version: 0.3.4
@@ -27,15 +26,15 @@ class FixedPercentSlippage(Slippage):
     """
     固定比率的滑点模型
     """
-    def __init__(self, percent=0.2):
+    def __init__(self, percent=0.1):
         """
         参数
-        rate: 滑点比率，如0.2，则买卖方向上各滑点0.1%
+        rate: 滑点比率，如0.1，则买卖方向上各滑点0.1%
         """
         self.rate = percent / 100.0
 
     def get_trade_price(self, price, direction):
-        slippage = price * self.rate / 2.0 * (1 if direction == "BUY" else -1)
+        slippage = price * self.rate * (1 if direction == "BUY" else -1)
         price = price + slippage
 
         return price

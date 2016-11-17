@@ -99,7 +99,7 @@ class BasicPortfolio(Portfolio):
     def update_timeindex(self, event):
         """
         用于追踪新的持仓市值
-        向持仓头寸中加入新的纪录，也就是刚结束的这根完整k bar
+        向持仓头寸中加入新的纪录，也就是刚结束的这根完整k bar，bar的时间理解成endTime
         从events队列中使用BarEvent
         """
         bars = {}
@@ -119,7 +119,6 @@ class BasicPortfolio(Portfolio):
         dh['cash'] = self.current_holdings['cash']
         dh['commission'] = self.current_holdings['commission']
         dh['total'] = self.current_holdings['cash']
-
         for s in self.symbol_list:
             # 估计持仓市值
             market_value = self.current_positions[s] * bars[s][0][5]

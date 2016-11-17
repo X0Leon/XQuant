@@ -7,14 +7,14 @@
 @version: 0.3
 """
 
-# import datetime
+import datetime
 # import time
 import pandas as pd
 try:
     import queue
 except ImportError:  # 兼容python 2.7
     import Queue as queue
-
+from ..utils.logger import setup_logger
 
 class Backtest(object):
     """
@@ -23,7 +23,8 @@ class Backtest(object):
     def __init__(self, csv_dir, symbol_list, initial_capital,
                  heartbeat, start_date, data_handler,
                  execution_handler, portfolio, strategy,
-                 commission=None, slippage=None, log='silence', **params):
+                 commission_type='zero', slippage_type='zero',
+                 **params):
         """
         初始化回测
         csv_dir: CSV数据文件夹目录
@@ -35,9 +36,8 @@ class Backtest(object):
         execution_handler: (Class) 处理order/fill的类
         portfolio: (Class) 虚拟账户，追踪组合头寸等信息的类
         strategy: (Class) 根据市场数据生成信号的策略类
-        commission: 交易费率供模拟交易所使用：如为None则自行计算；如暂不考虑，请设置为0
-        slippage: 滑点，待加入
-        log: 日志flag
+        commission_type: 交易费率模型
+        slippage_type: 滑点模型
         params: 策略参数的字典
         """
         self.csv_dir = csv_dir
@@ -51,9 +51,8 @@ class Backtest(object):
         self.portfolio_cls = portfolio
         self.strategy_cls = strategy
 
-        self.commission = commission
-        self.slippage = slippage
-        self.log = log
+        self.commission_type = commission_type
+        self.slippage_type = slippage_type
 
         self.events = queue.Queue()
 
@@ -74,13 +73,14 @@ class Backtest(object):
         self.portfolio = self.portfolio_cls(self.data_handler, self.events, self.start_date,
                                             self.initial_capital)
         self.execution_handler = self.execution_handler_cls(self.data_handler, self.events,
-                                                            commission=self.commission,
-                                                            slippage=self.slippage)
+                                                            slippage_type=self.slippage_type,
+                                                            commission_type=self.commission_type)
 
     def _run_backtest(self):
         """
         执行回测
         """
+        logger = setup_logger()
         while True:
             # 更新k bar
             bars = self.data_handler
@@ -98,10 +98,14 @@ class Backtest(object):
                 else:
                     if event is not None:
                         if event.type == 'BAR':  # or event.type == 'TICK'
-                            # print(event.bar)
+                            logger.debug(' '.join([event.bar[0], event.bar[1].strftime("%Y-%m-%d %H:%M:%S"),
+                                                   str(event.bar[5])]))
+
                             self.strategy.calculate_signals(event)
                             self.portfolio.update_timeindex(event)
                         elif event.type == 'SIGNAL':
+                            logger.info(' '.join([event.symbol, event.datetime.strftime("%Y-%m-%d %H:%M:%S"),
+                                                  event.signal_type]))
                             self.signals += 1
                             self.portfolio.update_signal(event)
 
@@ -129,9 +133,10 @@ class Backtest(object):
         模拟回测并输出结果，返回资金曲线和头寸的DataFrame
         """
         self._run_backtest()
-        if self.log != 'silence':
-            self._output_performance()
+        #self._output_performance()
 
-        positions = pd.DataFrame(self.portfolio.all_positions).set_index('datetime')
-        holdings = pd.DataFrame(self.portfolio.all_holdings).set_index('datetime')
+        positions = pd.DataFrame(self.portfolio.all_positions).drop_duplicates(subset='datetime', keep='last'
+                                                                               ).set_index('datetime')
+        holdings = pd.DataFrame(self.portfolio.all_holdings).drop_duplicates(subset='datetime', keep='last'
+                                                                               ).set_index('datetime')
         return positions, holdings

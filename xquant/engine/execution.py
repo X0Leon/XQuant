@@ -4,11 +4,8 @@
 ExecutionHandler抽象基类/类
 orders的执行，这里模拟交易所行为
 
-目前只是简单地以当前市价成交所有orders
-TODO: 可以大大扩展：如滑点，市场冲击等等
-
 @author: X0Leon
-@version: 0.2.0a
+@version: 0.3
 """
 
 # import datetime
@@ -18,11 +15,14 @@ from abc import ABCMeta, abstractmethod
 
 from .event import FillEvent
 # from .event import OrderEvent
+from .commission import PerShareCommission, PerMoneyCommission
+from ..utils.symbol import get_exchange
+from .slippage import FixedPercentSlippage
 
 
 class ExecutionHandler(object):
     """
-    ExecutionHandler抽象基类，处理从Portofio发来的订单，
+    ExecutionHandler抽象基类，处理从Portfolio发来的订单，
     产生实际成交的Fill对象，即真实出现在市场中的成交
     继承的子类既可以是模拟的交易所，也可以是真正的实时交易API接口
     """
@@ -43,53 +43,66 @@ class SimulatedExecutionHandler(ExecutionHandler):
     简单的模拟交易所
     未考虑等待时间、滑点、部分成交等
     """
-    def __init__(self, bars, events, commission=None, slippage=None):
+    def __init__(self, bars, events, slippage_type='fixed', commission_type='default'):
         """
         初始化
         参数：
         bars: DataHandler结果bars，为了对回测时成交价做模拟处理
         events: Event队列
-        commission: 费率，若为None则通过_calculate_commission计算
-        slippage: 滑点模型，待考虑（TODO：加入滑点）
+        commission_type: 费率模型
+        slippage_type: 滑点模型
         """
         self.bars = bars
         self.events = events
-        self.commission  = commission
-        self.slippage = slippage
+        self.commission_type = commission_type
+        self.slippage_type = slippage_type
+        self.commission = 0.0
+
+    def _trade_with_slippage(self, event):
+        """
+        考虑滑点后的成交价
+        """
+        order_price = self.bars.get_latest_bars(event.symbol)[0][5]  # 指令希望的成交价，这里模拟市价
+        if self.slippage_type == 'zero':
+            return order_price
+        elif self.slippage_type == 'fixed':
+            fixed_slippage = FixedPercentSlippage(percent=0.1)
+            return fixed_slippage.get_trade_price(order_price, event.direction)
+        else:
+            return order_price
 
     def _calculate_commission(self, event):
         """
-        计算股票和期货的手续费
-        股票代码，如'600008'；股指期货代码，如'IC1604*'
-        采用非常简单（但弹性）的识别方式
+        计算股票或期货的手续费
         """
-        commission = 0.0
-        fill_cost = self.bars.get_latest_bars(event.symbol)[0][5]  # 成交价
-        full_cost = fill_cost * event.quantity  # 成交额
+        self.fill_cost = self._trade_with_slippage(event)
+        full_cost = self.fill_cost * event.quantity  # 成交额
 
-        if event.symbol.startswith('6'):
-            if event.direction == 'BUY':
-                # 上海市场，买入：过户费+佣金
-                commission = max(event.quantity/1000, 1.0) + max(5.0, 3/10000.0*full_cost)
-            elif event.direction == 'SELL':
-                # 上海市场，卖出：印花税+过户费+佣金
-                commission = 1/1000.0*full_cost + max(event.quantity/1000, 1.0) + max(5.0, 3/10000.0*full_cost)
+        if self.commission_type == 'zero':
+            commission = 0.0
+        elif self.commission_type == 'default':
+            if event.symbol.startswith('6'):  # 上海交易所
+                if event.direction == 'BUY':  # 买入：过户费1000股1元+佣金单向万3
+                    commission = PerShareCommission(rate=0.0001, min_comm=1.0).calculate(event.quantity) + \
+                                 PerMoneyCommission(rate=3.0e-4, min_comm=5.0).calculate(full_cost)
+                else:  # 卖出：印花税+过户费+佣金
+                    commission = PerMoneyCommission(rate=1.0e-3).calculate(full_cost) + \
+                                 PerShareCommission(rate=0.0001, min_comm=1.0).calculate(event.quantity) + \
+                                 PerMoneyCommission(rate=3.0e-4, min_comm=5.0).calculate(full_cost)
+            elif event.symbol.startswith(('0', '3')):  # 深圳交易所
+                if event.direction == 'BUY':  # 买入：佣金
+                    commission = PerMoneyCommission(rate=3.0e-4, min_comm=5.0).calculate(full_cost)
+                else:  # 卖出：印花税+佣金
+                    commission = PerMoneyCommission(rate=1.0e-3).calculate(full_cost) + \
+                                 PerMoneyCommission(rate=3.0e-4, min_comm=5.0).calculate(full_cost)
+            elif event.symbol.startswith('I'):  # 股指期货，按照点数计算
+                commission = PerMoneyCommission(rate=3.0e-5).calculate(full_cost)
+            elif get_exchange(event.symbol) in ('SQ.EX', 'DS.EX', 'ZS.EX'):  # 商品期货，按照点数计算
+                commission = PerMoneyCommission(rate=1.5e-4).calculate(full_cost)
             else:
-                pass
-        elif event.symbol.startswith(('0', '3')):
-            if event.direction == 'BUY':
-                # 深圳市场，买入：佣金
-                commission = max(5.0, 3/10000.0*full_cost)
-            elif event.direction == 'SELL':
-                # 深圳市场，卖出：印花税+佣金
-                commission = 1/1000.0*full_cost + max(5.0, 3/10000.0*full_cost)
-            else:
-                pass
-        elif event.symbol.startswith('I'):
-            # 股指期货，暂时不考虑平今的高额收费情况
-            commission = full_cost*300*0.3/10000
+                commission = 0.0
         else:
-            pass
+            commission = 0.0
 
         return commission
 
@@ -99,16 +112,11 @@ class SimulatedExecutionHandler(ExecutionHandler):
         参数：
         event: 含有order信息的Event对象
         """
-        if self.commission is None:
-            self.commission = self._calculate_commission(event)
-
         if event.type == 'ORDER':
-            # 模拟设置成交价和手续费，暂时用k bar的close价
-            # 如果考虑滑点、冲击成本等，可以update到下一根k bar的价格处理
-            fill_cost = self.bars.get_latest_bars(event.symbol)[0][5]
-
-            timeindex = self.bars.get_latest_bars(event.symbol)[0][1]
-            fill_event = FillEvent(timeindex, event.symbol, 'SimulatorExchange',
-                                   event.quantity, event.direction, fill_cost,
-                                   commission=self.commission)
+            self.commission = self._calculate_commission(event)
+            # assert type(self.commission) is float, 'Commission should be float'
+            timeindex = self.bars.get_latest_bars(event.symbol)[0][1]  # 成交实际上发生在下一根K bar
+            fill_event = FillEvent(timeindex, event.symbol, 'SimulatingExchange',
+                                   event.quantity, event.direction, self.fill_cost,
+                                   self.commission)
             self.events.put(fill_event)
