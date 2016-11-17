@@ -17,17 +17,13 @@ A股市场股票、股指期货、商品期货的量化投资回测框架。当�
 
 API示例: 参考demo文件夹中的移动双均线策略（Moving Average Cross Strategy）
 
-真实策略回测绘图：
-
-![](doc/plot_chart.png)
-
 Changelog:
 
-2016年10月27日，Version 0.3.3
+2016年11月--日，Version 0.4
 
-* 合并回测引擎至构建engine模块
-* 兼容python 2.7
-* 其他子模块诸多变动
+* 回测引擎engine模块更加鲁棒和完善，支持滑点和手续费模型
+* 兼容python 2.7并保持一段时间
+* 持续完善finance/visual/utils，大幅增加utils模块
 
 2016年9月22日，Version 0.3
 
@@ -44,4 +40,8 @@ Changelog:
 
 Copyright (c) 2016 X0Leon (Leon L. Zhang) Email: pku09zl[at]gmail.com
 
-持续活跃更新中，在Version 1.0前不保证API稳定。欢迎讨论和Star!
+持续活跃更新中，在Version 1.0前不保证API稳定。欢迎讨论、PR和Star!
+
+突破策略回测结果：
+
+![](doc/plot_chart.png)
