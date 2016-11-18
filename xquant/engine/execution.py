@@ -75,8 +75,8 @@ class SimulatedExecutionHandler(ExecutionHandler):
         """
         计算股票或期货的手续费
         """
-        self.fill_cost = self._trade_with_slippage(event)
-        full_cost = self.fill_cost * event.quantity  # 成交额
+        self.fill_price = self._trade_with_slippage(event)
+        full_cost = self.fill_price * event.quantity  # 成交额
 
         if self.commission_type == 'zero':
             commission = 0.0
@@ -117,6 +117,6 @@ class SimulatedExecutionHandler(ExecutionHandler):
             # assert type(self.commission) is float, 'Commission should be float'
             timeindex = self.bars.get_latest_bars(event.symbol)[0][1]  # 成交实际上发生在下一根K bar
             fill_event = FillEvent(timeindex, event.symbol, 'SimulatingExchange',
-                                   event.quantity, event.direction, self.fill_cost,
+                                   event.quantity, event.direction, self.fill_price,
                                    self.commission)
             self.events.put(fill_event)

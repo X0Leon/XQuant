@@ -123,7 +123,7 @@ class FillEvent(Event):
     存储实际成交的成交量和价格，以及佣金
     """
     def __init__(self, timeindex, symbol, exchange, quantity, direction,
-                 fill_cost, commission):
+                 fill_price, commission):
         """
         初始化FillEvent对象，成交信息
         参数：
@@ -132,7 +132,7 @@ class FillEvent(Event):
         exchange: 交易所(exchange)
         quantity: 成交数量
         direction: 成交的方向
-        fill_cost：成交价
+        fill_price：成交价
         commission：费率
         """
         self.type = 'FILL'
@@ -141,5 +141,5 @@ class FillEvent(Event):
         self.exchange = exchange
         self.quantity = quantity
         self.direction = direction
-        self.fill_cost = fill_cost
+        self.fill_price = fill_price
         self.commission = commission

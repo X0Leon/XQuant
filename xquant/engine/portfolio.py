@@ -129,7 +129,7 @@ class BasicPortfolio(Portfolio):
 
     # (1) 与FillEvent对象交互: 通过两个工具函数来实现Portfolio抽象基类的update_fill()
 
-    def update_position_from_fill(self, fill):
+    def update_positions_from_fill(self, fill):
         """
         从FillEvent对象中读取数据以更新头寸position
         参数：
@@ -169,7 +169,7 @@ class BasicPortfolio(Portfolio):
         从FillEvent中更新组合的头寸和市值，实现
         """
         if event.type == 'FILL':
-            self.update_position_from_fill(event)
+            self.update_positions_from_fill(event)
             self.update_holdings_from_fill(event)
 
     # (2) 与SignalEvent对象交互: 通过一个工具函数来实现Portfolio抽象基类的update_signal()
