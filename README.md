@@ -19,11 +19,11 @@ API示例: 参考demo文件夹中的移动双均线策略（Moving Average Cross
 
 Changelog:
 
-2016年11月--日，Version 0.4
+2016年11月18日，Version 0.4
 
 * 回测引擎engine模块更加鲁棒和完善，支持滑点和手续费模型
 * 兼容python 2.7并保持一段时间
-* 持续完善finance/visual/utils，大幅增加utils模块
+* 持续完善finance/visual/utils，尤其是utils模块
 
 2016年9月22日，Version 0.3
 
@@ -41,7 +41,3 @@ Changelog:
 Copyright (c) 2016 X0Leon (Leon L. Zhang) Email: pku09zl[at]gmail.com
 
 持续活跃更新中，在Version 1.0前不保证API稳定。欢迎讨论、PR和Star!
-
-突破策略回测结果：
-
-![](doc/plot_chart.png)
