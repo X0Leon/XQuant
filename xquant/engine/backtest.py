@@ -15,6 +15,7 @@ try:
 except ImportError:  # 兼容python 2.7
     import Queue as queue
 from ..utils.logger import setup_logger
+from .event import SignalEvent
 
 logger = setup_logger()
 
@@ -35,6 +36,7 @@ class Backtest(object):
         initial_capital: 初始资金，如10000.0
         heartbeat: k bar周期，以秒计，如分钟线为60，模拟交易使用
         start_date: 策略回测起始时间
+        end_date: 策略回测结束时间
         data_handler: (Class) 处理市场数据的类
         execution_handler: (Class) 处理order/fill的类
         portfolio: (Class) 虚拟账户，追踪组合头寸等信息的类
@@ -48,6 +50,7 @@ class Backtest(object):
         self.initial_capital = initial_capital
         self.heartbeat = heartbeat
         self.start_date = start_date
+        # self.end_date = end_date
 
         self.data_handler_cls = data_handler
         self.execution_handler_cls = execution_handler
@@ -86,7 +89,7 @@ class Backtest(object):
         while True:
             # 更新k bar
             bars = self.data_handler
-            if bars.continue_backtest:
+            if bars.continue_backtest:  # self.portfolio.current_datetime < self.end_date
                 bars.update_bars()
             else:
                 break
@@ -105,6 +108,7 @@ class Backtest(object):
 
                             self.strategy.calculate_signals(event)
                             self.portfolio.update_timeindex(event)
+
                         elif event.type == 'SIGNAL':
                             logger.info(' '.join(['Create Signal:', event.datetime.strftime("%Y-%m-%d %H:%M:%S"),
                                                   event.symbol, event.signal_type]))
@@ -121,14 +125,32 @@ class Backtest(object):
 
             # time.sleep(self.heartbeat)
 
+    def _force_clear(self):
+        """
+        回测结束，确保强制平仓
+        """
+        for s in self.symbol_list:
+            self.portfolio.update_signal(SignalEvent(s, self.portfolio.current_datetime, 'EXIT'))
+            event = self.events.get()
+            assert event.type == 'ORDER'
+            self.execution_handler.execute_order(event)
+            event = self.events.get()
+            assert event.type == 'FILL'
+            self.portfolio.update_fill(event)
+            logger.info(' '.join(['Force Clear:', self.portfolio.current_datetime.strftime("%Y-%m-%d %H:%M:%S"),
+                                  s, 'EXIT']))
+
+
     def _output_performance(self):
         """
         输出策略的回测结果，待添加
         """
         pass
 
-    def record_trades(self):
-
+    def trade_record(self):
+        """
+        交易记录
+        """
         trades = pd.DataFrame(self.portfolio.all_trades, columns=['datetime', 'exchange', 'symbol', 'direction',
                                                                   'fill_price', 'quantity', 'commission'])
         return trades.set_index('datetime')
@@ -140,10 +162,11 @@ class Backtest(object):
         logger.info('Start backtest...')
         self._run_backtest()
         logger.info('Summary: Signals (%s), Orders (%s), Fills (%s)' % (self.signals, self.orders, self.fills))
+        self._force_clear()
         self._output_performance()
-        positions = pd.DataFrame(self.portfolio.all_positions).drop_duplicates(subset='datetime', keep='last'
-                                                                               ).set_index('datetime')
-        holdings = pd.DataFrame(self.portfolio.all_holdings).drop_duplicates(subset='datetime', keep='last'
-                                                                             ).set_index('datetime')
+        positions = pd.DataFrame(self.portfolio.all_positions) #.drop_duplicates(subset='datetime', keep='last'
+                                                                               #).set_index('datetime')
+        holdings = pd.DataFrame(self.portfolio.all_holdings) #.drop_duplicates(subset='datetime', keep='last'
+                                                                             #).set_index('datetime')
 
         return positions, holdings

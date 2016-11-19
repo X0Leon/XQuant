@@ -54,6 +54,7 @@ class BasicPortfolio(Portfolio):
         self.events = events
         self.symbol_list = self.bars.symbol_list
         self.start_date = start_date
+        self.current_datetime = start_date
         self.initial_capital = initial_capital
 
         self.all_positions = self.construct_all_positions()  # 字典的列表
@@ -105,11 +106,15 @@ class BasicPortfolio(Portfolio):
         从events队列中使用BarEvent
         """
         bars = {}
+
         for sym in self.symbol_list:
             bars[sym] = self.bars.get_latest_bars(sym, N=1)
+
+        self.current_datetime = bars[self.symbol_list[0]][0][1]
         # 更新头寸，字典
         dp = {s:0 for s in self.symbol_list}
-        dp['datetime'] = bars[self.symbol_list[0]][0][1]
+        dp['datetime'] = self.current_datetime
+
 
         for s in self.symbol_list:
             dp[s] = self.current_positions[s]
@@ -117,7 +122,7 @@ class BasicPortfolio(Portfolio):
         self.all_positions.append(dp)  # 注意all_positions是k bar周期的字典列表
         # 更新持仓，字典
         dh = {s:0 for s in self.symbol_list}
-        dh['datetime'] = bars[self.symbol_list[0]][0][1]
+        dh['datetime'] = self.current_datetime
         dh['cash'] = self.current_holdings['cash']
         dh['commission'] = self.current_holdings['commission']
         dh['total'] = self.current_holdings['cash']
