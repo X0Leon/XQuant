@@ -5,7 +5,7 @@ Portfolio抽象基类/类
 头寸跟踪、订单管理，可以进一步做收益分析、风险管理等
 
 @author: X0Leon
-@version: 0.3
+@version: 0.4
 """
 
 from abc import ABCMeta, abstractmethod
@@ -61,6 +61,8 @@ class BasicPortfolio(Portfolio):
 
         self.all_holdings = self.construct_all_holdings()  # 字典的列表
         self.current_holdings = self.construct_current_holdings()  # 字典
+
+        self.all_trades = []
 
     def construct_all_positions(self):
         """
@@ -155,14 +157,31 @@ class BasicPortfolio(Portfolio):
         if fill.direction == 'SELL':
             fill_dir = -1
 
-        # fill_cost = self.bars.get_latest_bars(fill.symbol)[0][5] # close price
-        fill_cost = fill.fill_cost  # 成交价通过模拟交易所发回的Fill事件中读取
-        cost = fill_dir * fill_cost * fill.quantity
+        # fill_price = self.bars.get_latest_bars(fill.symbol)[0][5] # close price
+        fill_price = fill.fill_price  # 成交价通过模拟交易所发回的Fill事件中读取
+        cost = fill_dir * fill_price * fill.quantity
 
         self.current_holdings[fill.symbol] += cost
         self.current_holdings['commission'] += fill.commission
         self.current_holdings['cash'] -= (cost + fill.commission)
         self.current_holdings['total'] -= fill.commission
+
+    def update_trades_from_fill(self, fill):
+        """
+        从FillEvent对象中读取全部数据作为交易记录
+        参数：
+        fill: FillEvent对象
+        """
+        current_trade = {}
+        current_trade['datetime'] = fill.timeindex
+        current_trade['symbol'] = fill.symbol
+        current_trade['exchange'] = fill.exchange
+        current_trade['quantity'] = fill.quantity
+        current_trade['direction'] = fill.direction
+        current_trade['fill_price'] = fill.fill_price
+        current_trade['commission'] = fill.commission
+
+        self.all_trades.append(current_trade)
 
     def update_fill(self, event):
         """
@@ -171,6 +190,7 @@ class BasicPortfolio(Portfolio):
         if event.type == 'FILL':
             self.update_positions_from_fill(event)
             self.update_holdings_from_fill(event)
+            self.update_trades_from_fill(event)
 
     # (2) 与SignalEvent对象交互: 通过一个工具函数来实现Portfolio抽象基类的update_signal()
 

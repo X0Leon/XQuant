@@ -4,7 +4,7 @@
 Event类，在数据、组合、交易所（或模拟交易所）间流动的事件
 
 @author: X0Leon
-@version: 0.3
+@version: 0.4
 """
 
 

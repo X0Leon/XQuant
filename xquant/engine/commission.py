@@ -5,7 +5,7 @@ Commission 佣金+费税模型
 New in V0.3.4
 
 @author: X0Leon
-@version: 0.3.4
+@version: 0.4
 """
 
 from abc import ABCMeta, abstractmethod
@@ -23,6 +23,16 @@ class Commission(object):
         raise NotImplementedError("未实现get_commission()，此方法是必须的！")
 
 
+class ZeroCommission(Commission):
+    """
+    无费率
+    """
+    def get_commission(self):
+        return 0.0
+    def __repr__(self):
+        return "{class_name}".format(class_name=self.__class__.__name__)
+
+
 class PerShareCommission(Commission):
     """
     基于交易份额（或称数量）计算手续费，一般是上交所的过户费，每1000股收费1元
@@ -31,7 +41,7 @@ class PerShareCommission(Commission):
         self.rate_per_share = rate
         self.min_comm = min_comm
 
-    def calculate(self, quantity):
+    def get_commission(self, quantity):
         return max(math.ceil(quantity * self.rate_per_share), self.min_comm)
 
     def __repr__(self):
@@ -53,7 +63,7 @@ class PerMoneyCommission(Commission):
         self.rate_per_money = float(rate)
         self.min_comm = float(min_comm)
 
-    def calculate(self, full_cost):
+    def get_commission(self, full_cost):
         return max(full_cost * self.rate_per_money, self.min_comm)
 
     def __repr__(self):

@@ -5,7 +5,7 @@ Slippage 滑点模型
 New in V0.3.4
 
 @author: X0Leon
-@version: 0.3.4
+@version: 0.4
 """
 
 from abc import ABCMeta, abstractmethod
@@ -18,8 +18,16 @@ class Slippage(object):
     __metaclass__ = ABCMeta
 
     @abstractmethod
-    def get_trade_price(self, price, direction):
+    def get_trade_price(self):
         raise NotImplementedError("未实现get_trade_price()，此方法是必须的！")
+
+
+class ZeroSlippage(Slippage):
+    """
+    无滑点
+    """
+    def get_trade_price(self, price):
+        return price
 
 
 class FixedPercentSlippage(Slippage):
@@ -41,4 +49,5 @@ class FixedPercentSlippage(Slippage):
 
 
 class VolumeShareSlippage(Slippage):
-    pass
+    def get_trade_price(self, price, direction):
+        pass

@@ -11,7 +11,7 @@ import logging
 
 def setup_logger(filename=None):
     logger = logging.getLogger(__name__)
-    logger.setLevel(logging.DEBUG)
+    logger.setLevel(logging.INFO)  # DEBUG, INFO, WARNING, ERROR, CRITICAL
 
     formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
 

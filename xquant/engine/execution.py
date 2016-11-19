@@ -5,7 +5,7 @@ ExecutionHandler抽象基类/类
 orders的执行，这里模拟交易所行为
 
 @author: X0Leon
-@version: 0.3
+@version: 0.4
 """
 
 # import datetime
@@ -15,9 +15,9 @@ from abc import ABCMeta, abstractmethod
 
 from .event import FillEvent
 # from .event import OrderEvent
-from .commission import PerShareCommission, PerMoneyCommission
+from .commission import ZeroCommission, PerShareCommission, PerMoneyCommission
 from ..utils.symbol import get_exchange
-from .slippage import FixedPercentSlippage
+from .slippage import ZeroSlippage, FixedPercentSlippage
 
 
 class ExecutionHandler(object):
@@ -64,14 +64,15 @@ class SimulatedExecutionHandler(ExecutionHandler):
         """
         order_price = self.bars.get_latest_bars(event.symbol)[0][5]  # 指令希望的成交价，这里模拟市价
         if self.slippage_type == 'zero':
-            return order_price
+            return ZeroSlippage().get_trade_price(order_price)
+
         elif self.slippage_type == 'fixed':
             fixed_slippage = FixedPercentSlippage(percent=0.1)
             return fixed_slippage.get_trade_price(order_price, event.direction)
         else:
             return order_price
 
-    def _calculate_commission(self, event):
+    def _get_commission_commission(self, event):
         """
         计算股票或期货的手续费
         """
@@ -79,26 +80,27 @@ class SimulatedExecutionHandler(ExecutionHandler):
         full_cost = self.fill_price * event.quantity  # 成交额
 
         if self.commission_type == 'zero':
-            commission = 0.0
+            commission = ZeroCommission().get_commission()
+
         elif self.commission_type == 'default':
             if event.symbol.startswith('6'):  # 上海交易所
                 if event.direction == 'BUY':  # 买入：过户费1000股1元+佣金单向万3
-                    commission = PerShareCommission(rate=0.0001, min_comm=1.0).calculate(event.quantity) + \
-                                 PerMoneyCommission(rate=3.0e-4, min_comm=5.0).calculate(full_cost)
+                    commission = PerShareCommission(rate=0.0001, min_comm=1.0).get_commission(event.quantity) + \
+                                 PerMoneyCommission(rate=3.0e-4, min_comm=5.0).get_commission(full_cost)
                 else:  # 卖出：印花税+过户费+佣金
-                    commission = PerMoneyCommission(rate=1.0e-3).calculate(full_cost) + \
-                                 PerShareCommission(rate=0.0001, min_comm=1.0).calculate(event.quantity) + \
-                                 PerMoneyCommission(rate=3.0e-4, min_comm=5.0).calculate(full_cost)
+                    commission = PerMoneyCommission(rate=1.0e-3).get_commission(full_cost) + \
+                                 PerShareCommission(rate=0.0001, min_comm=1.0).get_commission(event.quantity) + \
+                                 PerMoneyCommission(rate=3.0e-4, min_comm=5.0).get_commission(full_cost)
             elif event.symbol.startswith(('0', '3')):  # 深圳交易所
                 if event.direction == 'BUY':  # 买入：佣金
-                    commission = PerMoneyCommission(rate=3.0e-4, min_comm=5.0).calculate(full_cost)
+                    commission = PerMoneyCommission(rate=3.0e-4, min_comm=5.0).get_commission(full_cost)
                 else:  # 卖出：印花税+佣金
-                    commission = PerMoneyCommission(rate=1.0e-3).calculate(full_cost) + \
-                                 PerMoneyCommission(rate=3.0e-4, min_comm=5.0).calculate(full_cost)
+                    commission = PerMoneyCommission(rate=1.0e-3).get_commission(full_cost) + \
+                                 PerMoneyCommission(rate=3.0e-4, min_comm=5.0).get_commission(full_cost)
             elif event.symbol.startswith('I'):  # 股指期货，按照点数计算
-                commission = PerMoneyCommission(rate=3.0e-5).calculate(full_cost)
+                commission = PerMoneyCommission(rate=3.0e-5).get_commission(full_cost)
             elif get_exchange(event.symbol) in ('SQ.EX', 'DS.EX', 'ZS.EX'):  # 商品期货，按照点数计算
-                commission = PerMoneyCommission(rate=1.5e-4).calculate(full_cost)
+                commission = PerMoneyCommission(rate=1.5e-4).get_commission(full_cost)
             else:
                 commission = 0.0
         else:
@@ -113,10 +115,10 @@ class SimulatedExecutionHandler(ExecutionHandler):
         event: 含有order信息的Event对象
         """
         if event.type == 'ORDER':
-            self.commission = self._calculate_commission(event)
+            self.commission = self._get_commission_commission(event)
             # assert type(self.commission) is float, 'Commission should be float'
             timeindex = self.bars.get_latest_bars(event.symbol)[0][1]  # 成交实际上发生在下一根K bar
-            fill_event = FillEvent(timeindex, event.symbol, 'SimulatingExchange',
+            fill_event = FillEvent(timeindex, event.symbol, 'SimulatedExchange',
                                    event.quantity, event.direction, self.fill_price,
                                    self.commission)
             self.events.put(fill_event)

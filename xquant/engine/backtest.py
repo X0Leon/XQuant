@@ -4,7 +4,7 @@
 回测的主要接口
 
 @author: X0Leon
-@version: 0.3
+@version: 0.4
 """
 
 import datetime
@@ -17,6 +17,7 @@ except ImportError:  # 兼容python 2.7
 from ..utils.logger import setup_logger
 
 logger = setup_logger()
+
 
 class Backtest(object):
     """
@@ -99,15 +100,14 @@ class Backtest(object):
                 else:
                     if event is not None:
                         if event.type == 'BAR':  # or event.type == 'TICK'
-                            logger.info(' '.join([event.bar[0], event.bar[1].strftime("%Y-%m-%d %H:%M:%S"),
-                                                  str(event.bar[5])]))
+                            logger.debug(' '.join([event.bar[0], event.bar[1].strftime("%Y-%m-%d %H:%M:%S"),
+                                                   str(event.bar[5])]))
 
                             self.strategy.calculate_signals(event)
                             self.portfolio.update_timeindex(event)
                         elif event.type == 'SIGNAL':
-                            logger.info(' '.join(['Create Signal:', event.symbol,
-                                                  event.datetime.strftime("%Y-%m-%d %H:%M:%S"),
-                                                  event.signal_type]))
+                            logger.info(' '.join(['Create Signal:', event.datetime.strftime("%Y-%m-%d %H:%M:%S"),
+                                                  event.symbol, event.signal_type]))
                             self.signals += 1
                             self.portfolio.update_signal(event)
 
@@ -125,20 +125,25 @@ class Backtest(object):
         """
         输出策略的回测结果，待添加
         """
-        logger.info('生成回测结果...')
-        logger.info('策略产生交易信号数: %s' % self.signals)
-        logger.info('组合产生委托订单数: %s' % self.orders)
-        logger.info('回测交易成交订单数: %s' % self.fills)
+        pass
+
+    def record_trades(self):
+
+        trades = pd.DataFrame(self.portfolio.all_trades, columns=['datetime', 'exchange', 'symbol', 'direction',
+                                                                  'fill_price', 'quantity', 'commission'])
+        return trades.set_index('datetime')
 
     def simulate_trading(self):
         """
         模拟回测并输出结果，返回资金曲线和头寸的DataFrame
         """
+        logger.info('Start backtest...')
         self._run_backtest()
+        logger.info('Summary: Signals (%s), Orders (%s), Fills (%s)' % (self.signals, self.orders, self.fills))
         self._output_performance()
-
         positions = pd.DataFrame(self.portfolio.all_positions).drop_duplicates(subset='datetime', keep='last'
                                                                                ).set_index('datetime')
         holdings = pd.DataFrame(self.portfolio.all_holdings).drop_duplicates(subset='datetime', keep='last'
-                                                                               ).set_index('datetime')
+                                                                             ).set_index('datetime')
+
         return positions, holdings
