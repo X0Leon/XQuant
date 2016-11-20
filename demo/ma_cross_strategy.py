@@ -74,15 +74,17 @@ class MovingAverageCrossStrategy(Strategy):
 
 if __name__ == '__main__':
     csv_dir = os.path.join(os.path.dirname(os.getcwd()), 'demo/testdata')  # testdata文件夹路径
-    symbol_list = ['600008', '600018']
+    # symbol_list = ['600008', '600018']
+    symbol_list = ['600008']
     initial_capital = 100000.0
     heartbeat = 0.0
     start_date = datetime.datetime(2015, 10, 2, 0, 0)
+    end_date = datetime.datetime(2015, 12, 30, 23, 59)
 
     backtest = Backtest(csv_dir, symbol_list, initial_capital, heartbeat,
-                        start_date, CSVDataHandler, SimulatedExecutionHandler,
+                        start_date, end_date, CSVDataHandler, SimulatedExecutionHandler,
                         BasicPortfolio, MovingAverageCrossStrategy,
-                        slippage_type='zero', commission_type='zero',
+                        slippage_type='fixed', commission_type='default',
                         long_window=10, short_window=5)
 
     positions, holdings = backtest.simulate_trading()

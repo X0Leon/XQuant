@@ -25,7 +25,7 @@ class Backtest(object):
     封装回测设置和模块的接口
     """
     def __init__(self, csv_dir, symbol_list, initial_capital,
-                 heartbeat, start_date, data_handler,
+                 heartbeat, start_date, end_date, data_handler,
                  execution_handler, portfolio, strategy,
                  commission_type='zero', slippage_type='zero',
                  **params):
@@ -50,7 +50,7 @@ class Backtest(object):
         self.initial_capital = initial_capital
         self.heartbeat = heartbeat
         self.start_date = start_date
-        # self.end_date = end_date
+        self.end_date = end_date
 
         self.data_handler_cls = data_handler
         self.execution_handler_cls = execution_handler
@@ -74,7 +74,8 @@ class Backtest(object):
         """
         实例化类，得到data_handler(bars),strategy,portfolio(port),execution_handler(broker)对象
         """
-        self.data_handler = self.data_handler_cls(self.events, self.csv_dir, self.symbol_list)
+        self.data_handler = self.data_handler_cls(self.events, self.csv_dir, self.symbol_list,
+                                                  self.start_date, self.end_date)
         self.strategy = self.strategy_cls(self.data_handler, self.events, **self.params)
         self.portfolio = self.portfolio_cls(self.data_handler, self.events, self.start_date,
                                             self.initial_capital)
@@ -89,7 +90,7 @@ class Backtest(object):
         while True:
             # 更新k bar
             bars = self.data_handler
-            if bars.continue_backtest:  # self.portfolio.current_datetime < self.end_date
+            if bars.continue_backtest:
                 bars.update_bars()
             else:
                 break
@@ -107,7 +108,7 @@ class Backtest(object):
                                                    str(event.bar[5])]))
 
                             self.strategy.calculate_signals(event)
-                            self.portfolio.update_timeindex(event)
+                            self.portfolio.update_timeindex()
 
                         elif event.type == 'SIGNAL':
                             logger.info(' '.join(['Create Signal:', event.datetime.strftime("%Y-%m-%d %H:%M:%S"),
@@ -132,18 +133,20 @@ class Backtest(object):
         for s in self.symbol_list:
             self.portfolio.update_signal(SignalEvent(s, self.portfolio.current_datetime, 'EXIT'))
             event = self.events.get()
-            assert event.type == 'ORDER'
-            self.execution_handler.execute_order(event)
-            event = self.events.get()
-            assert event.type == 'FILL'
-            self.portfolio.update_fill(event)
-            logger.info(' '.join(['Force Clear:', self.portfolio.current_datetime.strftime("%Y-%m-%d %H:%M:%S"),
-                                  s, 'EXIT']))
+            if event is not None:
+                assert event.type == 'ORDER'
+                self.execution_handler.execute_order(event)
+                event = self.events.get()
+                assert event.type == 'FILL'
+                self.portfolio.update_fill(event)
+                self.portfolio.update_timeindex()
+                logger.info(' '.join(['Force Clear:', self.portfolio.current_datetime.strftime("%Y-%m-%d %H:%M:%S"),
+                                      s, 'EXIT']))
 
 
     def _output_performance(self):
         """
-        输出策略的回测结果，待添加
+        输出策略的回测结果
         """
         pass
 
@@ -164,9 +167,9 @@ class Backtest(object):
         logger.info('Summary: Signals (%s), Orders (%s), Fills (%s)' % (self.signals, self.orders, self.fills))
         self._force_clear()
         self._output_performance()
-        positions = pd.DataFrame(self.portfolio.all_positions) #.drop_duplicates(subset='datetime', keep='last'
-                                                                               #).set_index('datetime')
-        holdings = pd.DataFrame(self.portfolio.all_holdings) #.drop_duplicates(subset='datetime', keep='last'
-                                                                             #).set_index('datetime')
+        positions = pd.DataFrame(self.portfolio.all_positions).drop_duplicates(subset='datetime', keep='last'
+                                                                               ).set_index('datetime')
+        holdings = pd.DataFrame(self.portfolio.all_holdings).drop_duplicates(subset='datetime', keep='last'
+                                                                             ).set_index('datetime')
 
         return positions, holdings

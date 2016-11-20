@@ -49,10 +49,12 @@ class DataHandler(object):
 ######################
 
 class CSVDataHandler(DataHandler):
-    def __init__(self, events, csv_dir, symbol_list):
+    def __init__(self, events, csv_dir, symbol_list, start_date, end_date):
         self.events = events
         self.csv_dir = csv_dir
         self.symbol_list = symbol_list
+        self.start_date = start_date
+        self.end_date = end_date
 
         self.symbol_data = {}  # key为股票代码，value为数据df的iterrows()迭代器
         self.latest_symbol_data = {}
@@ -73,7 +75,7 @@ class CSVDataHandler(DataHandler):
                 os.path.join(self.csv_dir, '%s.csv' % s),
                 header=0, index_col=0, parse_dates=True,
                 names=['datetime', 'open', 'high', 'low', 'close', 'volume']
-            ).sort_index()  # 强制日期升序
+            ).sort_index()[self.start_date:self.end_date]  # 强制日期升序
             if comb_index is None:
                 comb_index = self.symbol_data[s].index
             else:

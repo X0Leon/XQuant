@@ -99,7 +99,7 @@ class BasicPortfolio(Portfolio):
         return d
 
     # 市场发生交易，我们需要更新持仓市值
-    def update_timeindex(self, event):
+    def update_timeindex(self):
         """
         用于追踪新的持仓市值
         向持仓头寸中加入新的纪录，也就是刚结束的这根完整k bar，bar的时间理解成endTime
