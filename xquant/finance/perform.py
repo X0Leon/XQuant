@@ -4,11 +4,12 @@
 评估策略优劣的功能函数模块
 
 @author: X0Leon
-@version: 0.3.0
+@version: 0.4
 """
 
 import numpy as np
 import pandas as pd
+
 
 # def create_equity_curve_dataframe(holdings):
 #     """
@@ -89,46 +90,64 @@ import pandas as pd
 #     return stats
 
 
-def perform_metrics(holdings, periods=252):
+def perform_metrics(total_series, periods=252):
     """
     资金曲线，夏普率和最大回撤的计算
     参数：
-    holdings为Backtest返回的持仓DataFrame，含投资品种市值、cash、commission、total四列
-    默认是日间报告，如果是日内策略，需要resample('D', how={})，或者修改periods
+    total_series为账户资金的Series
     """
-    holdings['return'] = holdings['total'].pct_change()
-    holdings['equity_curve'] = (1.0 + holdings['return']).cumprod()
-    ret = holdings['equity_curve'][-1] - 1  # 回测期间收益率
-    SR = np.sqrt(periods) * np.mean(holdings['return']) / np.std(holdings['return'])  # 夏普率
+    perform = total_series.to_frame('total')
+    perform['return'] = perform['total'].pct_change()
+    perform['equity_curve'] = (1.0 + perform['return']).cumprod()
+    ret = perform['equity_curve'][-1] - 1  # 回测期间收益率
+    sharpe_ratio = np.sqrt(periods) * np.mean(perform['return']) / np.std(perform['return'])  # 夏普率
 
-    holdings['cum_max'] = holdings['equity_curve'].cummax()
-    holdings['drawdown'] = holdings['equity_curve'] / holdings['cum_max'] - 1  # 回撤向量
-    max_dd = holdings['drawdown'].min()  # 最大回撤
+    perform['cum_max'] = perform['equity_curve'].cummax()
+    perform['drawdown'] = perform['equity_curve'] / perform['cum_max'] - 1  # 回撤向量
+    max_dd = perform['drawdown'].min()  # 最大回撤
 
     # i = holdings['drawdown'].index.get_loc(holdings['drawdown'].idxmax())  # 获取回撤周期的结束row序号
     # j = holdings['dd'].index.get_loc(holdings['equity_curve'].iloc[:i].idxmax())  # 回撤开始的row
 
-    return holdings, ret, SR, max_dd
+    return perform, ret, sharpe_ratio, max_dd
 
 
-def detail_blotter(backtest, positions, holdings):
+def detail_blotter(backtest, positions, holdings, mode='simplified'):
     """
-    获取详细交割单
-    参数：
-    backtest, positions和holdings为回测后得到的对象
-    返回：
-    字典：键为symbol，值为行情数据和详细交割单合并后的DataFrame
-
+    分品种获取详细交易状况（DataFrame的字典）
+    合并市场数据、交易情况和账户变动
+    如果mode为'simplified'，则市场数据只保留close列
     示例：
-    detail_orders = detail_orders(backtest, positions, holdings)['RB']
-    使用pandas自带的可视化，
-        detail_orders['RB'].plot.area(stacked=False, ylim=(-1.2, 1.2), alpha=0.3)
-        detail_orders['close'].plot(secondary_y=True)
+    blotter = detail_blotter(backtest, positions, holdings)
+    blotter_rb = blotter['RB']
     """
     blotter = dict()
     data_dict = backtest.data_handler.latest_symbol_data
+    trades = backtest.trade_record()
+    trades['direction'] = [1 if d=='BUY' else -1 for d in trades['direction']]
+    trades['cost'] = trades['direction'] * trades['fill_price'] * trades['quantity']
     for symb in data_dict.keys():
         data = pd.DataFrame(data_dict[symb], columns=['symbol', 'datetime', 'open', 'high', 'low',
-                                                      'close', 'volume']).set_index('datetime')
-        blotter[symb] = data.join([positions[symb].to_frame(symb+'_p'), holdings], how='outer').iloc[1:,:]  # 第一行NaN
+                                                      'close', 'volume'])
+        if mode == 'simplified':
+            data = data[['datetime', 'close']].set_index('datetime')
+        else:  # 'full'
+            data = data.set_index('datetime')
+
+        trades_symb = trades[trades['symbol']==symb][['direction','fill_price', 'commission', 'cost']]
+        holdings_symb = pd.Series(holdings[symb], name='holdings')
+        positions_symb = pd.Series(positions[symb], name='positions')
+        merge = data.join([positions_symb, holdings_symb, trades_symb], how='outer').iloc[1:, :].fillna(0.)
+        # 计算每根bar结束后的盈亏
+        merge['pnl'] = merge['holdings'] - merge['holdings'].shift(1) - merge['cost'].shift(1) - \
+                       merge['commission'].shift(1)
+        merge['pnl'].iloc[0] = 0.  # NaN
+        # 回测结束时对可能存在的强制平仓进行额外计算
+        merge['pnl'].iloc[-1] = merge['holdings'].iloc[-1] - merge['holdings'].iloc[-2] - merge['cost'].iloc[-1] - \
+                                merge['commission'].iloc[-1]
+        # 以回测第一根bar收盘价作为起始资本
+        merge['adj_total'] = merge['pnl'].cumsum() + merge['close'].iloc[0]
+        del merge['cost']
+        blotter[symb] = merge
+
     return blotter
