@@ -8,7 +8,7 @@
 """
 
 import datetime
-# import time
+import time
 import pandas as pd
 try:
     import queue
@@ -36,6 +36,7 @@ class Backtest(object):
         initial_capital: 初始资金，如10000.0
         heartbeat: k bar周期，以秒计，如分钟线为60，模拟交易使用
         start_date: 策略回测起始时间
+        end_date: 策略回测结束时间
         end_date: 策略回测结束时间
         data_handler: (Class) 处理市场数据的类
         execution_handler: (Class) 处理order/fill的类
@@ -115,15 +116,12 @@ class Backtest(object):
                                                   event.symbol, event.signal_type]))
                             self.signals += 1
                             self.portfolio.update_signal(event)
-
                         elif event.type == 'ORDER':
                             self.orders += 1
                             self.execution_handler.execute_order(event)
-
                         elif event.type == 'FILL':
                             self.fills += 1
                             self.portfolio.update_fill(event)
-
             # time.sleep(self.heartbeat)
 
     def _force_clear(self):
@@ -143,7 +141,6 @@ class Backtest(object):
                 logger.info(' '.join(['Force Clear:', self.portfolio.current_datetime.strftime("%Y-%m-%d %H:%M:%S"),
                                       s, 'EXIT']))
 
-
     def _output_performance(self):
         """
         输出策略的回测结果
@@ -162,10 +159,14 @@ class Backtest(object):
         """
         模拟回测并输出结果，返回资金曲线和头寸的DataFrame
         """
+        start = time.time()
         logger.info('Start backtest...')
         self._run_backtest()
         logger.info('Summary: Signals (%s), Orders (%s), Fills (%s)' % (self.signals, self.orders, self.fills))
         self._force_clear()
+        end = time.time()
+        timing = round(end-start, 2)
+        logger.info('Backtest took %s seconds!' % timing)
         self._output_performance()
         positions = pd.DataFrame(self.portfolio.all_positions).drop_duplicates(subset='datetime', keep='last'
                                                                                ).set_index('datetime')

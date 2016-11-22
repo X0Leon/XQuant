@@ -11,14 +11,14 @@ import numpy as np
 import pandas as pd
 
 
-# def create_equity_curve_dataframe(holdings):
+# def create_equity_curve(total_series):
 #     """
 #     计算资金曲线
 #     参数：
 #     portfolio对象中all_holdings的DataFrame
 #     展示profit and loss (PnL)
 #     """
-#     curve = holdings
+#     curve = total_series.to_frame('total')
 #     curve['returns'] = curve['total'].pct_change()  # 计算百分比变化
 #     curve['equity_curve'] = (1.0 + curve['returns']).cumprod()  # 计算累计值
 #     return curve
@@ -32,16 +32,17 @@ import pandas as pd
 #     """
 #     return np.sqrt(periods) * (np.mean(returns))/np.std(returns)
 #
-# def create_drawdowns(holdings):
+# def create_drawdowns(equity_curve):
 #     """
 #     计算PnL曲线的最大回撤，以及持续时间
-#     holdings为持仓情况
+#     参数：
+#     equity_curve: 资金曲线的Series
 #
 #     return: drawdown, duration
 #     Ref: http://stackoverflow.com/questions/22607324/start-end-and-duration-of-maximum-drawdown-in-python
 #     """
 #     # 计算累计收益，记录最高收益（High Water Mark）
-#     df = holdings
+#     df = equity_curve.to_frame('equity_curve')
 #     df['cum_max'] = df['equity_curve'].cummax()
 #     df['dd'] = df['cum_max'] / df['equity_curve'] - 1  #
 #     i = df['dd'].index.get_loc(df['dd'].idxmax())  # 获取回撤周期的结束row序号
@@ -66,35 +67,16 @@ import pandas as pd
 #         drawdown[t] = hwm[t] - pnl[t]
 #         duration[t] = (0 if drawdown[t] == 0  else duration[t-1]+1)
 #     return drawdown, drawdown.max(), duration.max()
-#
-# def output_summary_stats(curve):
-#     """
-#     利用portfolio对象生成组合的一些统计信息
-#     参数：
-#     curve: 已计算equity_curve的DataFrame
-#     """
-#     total_return = curve['equity_curve'][-1]
-#     returns = curve['returns']
-#     pnl = curve['equity_curve']
-#
-#     sharpe_ratio = create_sharpe_ratio(returns, periods=252)
-#     drawdown, max_dd, dd_duration = create_drawdowns(pnl)
-#     curve['drawdown'] = drawdown
-#
-#     stats = [("Total Return", "%0.2f%%" % ((total_return - 1.0) * 100.0)),
-#              ("Sharpe Ratio", "%0.2f" % sharpe_ratio),
-#              ("Max Drawdown", "%0.2f%%" % (max_dd * 100.0)),
-#              ("Drawdown Duration", "%d" % dd_duration)]
-#
-#     # curve.to_csv('equity.csv')
-#     return stats
 
 
 def perform_metrics(total_series, periods=252):
     """
     资金曲线，夏普率和最大回撤的计算
     参数：
-    total_series为账户资金的Series
+    total_series：账户资金的Series
+    periods：回测时间尺度，默认为天，用于计算年化夏普率
+    返回：
+    perform, ret, sharpe_ratio, max_dd的元组
     """
     perform = total_series.to_frame('total')
     perform['return'] = perform['total'].pct_change()
@@ -114,12 +96,18 @@ def perform_metrics(total_series, periods=252):
 
 def detail_blotter(backtest, positions, holdings, mode='simplified'):
     """
-    分品种获取详细交易状况（DataFrame的字典）
-    合并市场数据、交易情况和账户变动
-    如果mode为'simplified'，则市场数据只保留close列
+    分品种获取详细交易状况，合并市场数据、交易情况和账户变动
+    参数：
+    backtest, positions, holdings为回测引擎返回的变量
+    mode: 'simplified'则市场行情数据只保留'close'列
+    （DataFrame的字典）
+    返回：
+    字典，键为symbol，值为DataFrame格式
+
     示例：
     blotter = detail_blotter(backtest, positions, holdings)
     blotter_rb = blotter['RB']
+    blotter_br.head()
     """
     blotter = dict()
     data_dict = backtest.data_handler.latest_symbol_data
