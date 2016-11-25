@@ -4,7 +4,7 @@
 DataHandler抽象基类
 
 @author: X0Leon
-@version: 0.3
+@version: 0.4
 """
 
 import datetime
@@ -62,33 +62,25 @@ class CSVDataHandler(DataHandler):
 
         self._open_convert_csv_files()
 
-    # @functools.lru_cache(maxsize=32)
     def _open_convert_csv_files(self):
         """
-        从数据文件夹中打开CSV文件，转换成pandas的DataFrames格式，union所有股票index, 即datetime
-        用_开头说明这是一个仅供内部使用的方法（私有方法）
-            'datetime','open','high','low','close','volume' 日期升序排列
+        从数据文件夹中打开CSV文件，转换成pandas的DataFrames格式，union所有股票index, 数据向前填充
+        列：'datetime','open','high','low','close','volume' 日期升序排列
         """
-        comb_index = None  # datetime作为index，不同股票之间取并集，对数据做相应的填充
+        comb_index = None  # datetime作为index，不同股票之间取并集，对数据向前填充
         for s in self.symbol_list:
             self.symbol_data[s] = pd.read_csv(
                 os.path.join(self.csv_dir, '%s.csv' % s),
                 header=0, index_col=0, parse_dates=True,
                 names=['datetime', 'open', 'high', 'low', 'close', 'volume']
-            ).sort_index()[self.start_date:self.end_date]  # 强制日期升序
+            ).sort_index()[self.start_date:self.end_date]
             if comb_index is None:
                 comb_index = self.symbol_data[s].index
             else:
-                comb_index.union(self.symbol_data[s].index)  # 取datetime index的并集
-                # 因为不同股票的交易时间不同
-
-                # 将字典中该只股票的最新数据设置为None，例如{'600008':[],}
-                # 不用担心，在下面update_bars()方法中会更新出实际意义的数据
+                comb_index.union(self.symbol_data[s].index)
             self.latest_symbol_data[s] = []
 
         for s in self.symbol_list:
-            # 合并index后的股票数据，所有股票的index相同
-            # method指明对缺失值的填充方式，pad/ffill是用向前取值
             self.symbol_data[s] = self.symbol_data[s].reindex(index=comb_index, method='pad').iterrows()
 
     def _get_new_bar(self, symbol):
@@ -140,21 +132,13 @@ class CSVDataHandler(DataHandler):
         """
         for s in self.symbol_list:
             try:
-                # try:  # 兼容python 2.7
-                #     bar = self._get_new_bar(s).__next__()
-                # except AttributeError:
-                #     bar = self._get_new_bar(s).next()
-                bar = next(self._get_new_bar(s))  # python2 & 3兼容
+                bar = next(self._get_new_bar(s))
             except StopIteration:
-                self.continue_backtest = False  # 跳出回测while的flag
+                self.continue_backtest = False
             else:
                 if bar is not None:
                     self.latest_symbol_data[s].append(bar)
                     self.events.put(BarEvent(bar))
-
-
-class TushareDataHandler(DataHandler):
-    pass
 
 
 class HDF5DataHandler(DataHandler):
