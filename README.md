@@ -2,7 +2,7 @@
 
 Backtesting microframe for equity/futures market with Python 3.x/pandas.
 
-A股市场股票、股指期货、商品期货的量化投资回测框架。当前版本：Version 0.4 (2016/11)
+A股市场股票、股指期货、商品期货的量化投资回测框架。当前版本：Version 0.5 (2016/12)
 
 核心依赖库：
 
@@ -11,13 +11,19 @@ A股市场股票、股指期货、商品期货的量化投资回测框架。当�
 * Pandas
 * Matplotlib
 
-安装：直接下载或者git clone到本地，在Version 1.0前不使用pip安装途径。
+安装：直接下载或者git clone到本地setup，在Version 1.0前不使用pip安装途径。
 
 使用：
 
 API示例: 参考demo文件夹中的移动双均线策略（Moving Average Cross Strategy）
 
 Changelog:
+
+2016年12月06日，Version 0.5
+
+* 回测结束强制平仓；可选择回测区间；分品种详细交易记录
+* 更新chart绘图；增加蒙特卡洛模拟历史；增加入场优势率评估
+* 通过config文件控制logger等
 
 2016年11月18日，Version 0.4
 
