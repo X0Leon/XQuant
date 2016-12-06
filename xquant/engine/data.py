@@ -34,14 +34,14 @@ class DataHandler(object):
         从latest_symbol列表中返回最近的几根bar，
         如果可用值小于N，则返回全部所能的使用k bar
         """
-        raise NotImplementedError("未实现get_latest_bars()，此方法是必须的！")
+        raise NotImplementedError("Should implement get_latest_bars()!")
 
     @abstractmethod
     def update_bars(self):
         """
         将股票列表中bar(条状图，k线)更新到最近的那一根
         """
-        raise NotImplementedError("未实现update_bars()，此方法是必须的！")
+        raise NotImplementedError("Should implement update_bars()！")
 
 
 ######################
@@ -56,7 +56,7 @@ class CSVDataHandler(DataHandler):
         self.start_date = start_date
         self.end_date = end_date
 
-        self.symbol_data = {}  # key为股票代码，value为数据df的iterrows()迭代器
+        self.symbol_data = {}
         self.latest_symbol_data = {}
         self.continue_backtest = True
 
@@ -67,7 +67,7 @@ class CSVDataHandler(DataHandler):
         从数据文件夹中打开CSV文件，转换成pandas的DataFrames格式，union所有股票index, 数据向前填充
         列：'datetime','open','high','low','close','volume' 日期升序排列
         """
-        comb_index = None  # datetime作为index，不同股票之间取并集，对数据向前填充
+        comb_index = None
         for s in self.symbol_list:
             self.symbol_data[s] = pd.read_csv(
                 os.path.join(self.csv_dir, '%s.csv' % s),
@@ -99,7 +99,7 @@ class CSVDataHandler(DataHandler):
         try:
             bars_list = self.latest_symbol_data[symbol]
         except KeyError:
-            print("数据源中不存在此投资品种！")
+            print("Not available symbol in the historical data set!")
         else:
             return bars_list[-N:]
 
@@ -111,7 +111,7 @@ class CSVDataHandler(DataHandler):
         try:
             bars_list = self.latest_symbol_data[symbol]
         except KeyError:
-            print("数据源中不存在此投资品种！")
+            print("Not available symbol in the historical data set!")
         else:
             return bars_list[-1]
 
@@ -122,7 +122,7 @@ class CSVDataHandler(DataHandler):
         try:
             bars_list = self.latest_symbol_data[symbol]
         except KeyError:
-            print("数据源中不存在此投资品种")
+            print("Not available symbol in the historical data set!")
         else:
             return bars_list[-1][1]
 

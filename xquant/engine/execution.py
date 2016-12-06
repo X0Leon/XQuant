@@ -35,7 +35,7 @@ class ExecutionHandler(object):
         参数：
         event: 包含order信息的事件
         """
-        raise NotImplementedError("未实现execute_order()，此方法是必须的！")
+        raise NotImplementedError("Should implement execute_order()!")
 
 
 class SimulatedExecutionHandler(ExecutionHandler):
@@ -62,7 +62,7 @@ class SimulatedExecutionHandler(ExecutionHandler):
         """
         考虑滑点后的成交价
         """
-        order_price = self.bars.get_latest_bars(event.symbol)[0][5]  # 指令希望的成交价，这里模拟市价
+        order_price = self.bars.get_latest_bars(event.symbol)[0][5]
         if self.slippage_type == 'zero':
             return ZeroSlippage().get_trade_price(order_price)
 
@@ -77,7 +77,7 @@ class SimulatedExecutionHandler(ExecutionHandler):
         计算股票或期货的手续费
         """
         self.fill_price = self._trade_with_slippage(event)
-        full_cost = self.fill_price * event.quantity  # 成交额
+        full_cost = self.fill_price * event.quantity
 
         if self.commission_type == 'zero':
             commission = ZeroCommission().get_commission()

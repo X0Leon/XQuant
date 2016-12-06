@@ -25,14 +25,14 @@ class Portfolio(object):
         """
         基于portfolio的管理逻辑，使用SignalEvent产生新的orders
         """
-        raise NotImplementedError("未实现update_signal()，此方法是必须的！")
+        raise NotImplementedError("Should implement update_signal()!")
 
     @abstractmethod
     def update_fill(self, event):
         """
         从FillEvent中更新组合当前的头寸和持仓市值
         """
-        raise NotImplementedError("未实现update_fill()，此方法是必须的！")
+        raise NotImplementedError("Should implement update_fill()!")
 
 
 # 一个基础的组合订单管理的类

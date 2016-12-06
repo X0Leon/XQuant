@@ -12,7 +12,7 @@ import time
 import pandas as pd
 try:
     import queue
-except ImportError:  # 兼容python 2.7
+except ImportError:
     import Queue as queue
 from ..utils.logger import setup_logger
 from .event import SignalEvent

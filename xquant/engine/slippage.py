@@ -19,7 +19,7 @@ class Slippage(object):
 
     @abstractmethod
     def get_trade_price(self):
-        raise NotImplementedError("未实现get_trade_price()，此方法是必须的！")
+        raise NotImplementedError("Should implement get_trade_price()!")
 
 
 class ZeroSlippage(Slippage):

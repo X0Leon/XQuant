@@ -27,7 +27,7 @@ class Strategy(object):
         """
         提供计算信号的机制
         """
-        raise NotImplementedError("未实现calculate_signals()，此方法是必须的！")
+        raise NotImplementedError("Should implement calculate_signals()!")
 
 
 ######################### 以下为使用的例子，请直接参考demo文件夹 ###############

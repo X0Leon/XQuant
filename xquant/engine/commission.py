@@ -20,7 +20,7 @@ class Commission(object):
 
     @abstractmethod
     def get_commission(self):
-        raise NotImplementedError("未实现get_commission()，此方法是必须的！")
+        raise NotImplementedError("Should implement get_commission()!")
 
 
 class ZeroCommission(Commission):
