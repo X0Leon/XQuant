@@ -4,7 +4,7 @@
 Portfolio抽象基类/类
 头寸跟踪、订单管理，可以进一步做收益分析、风险管理等
 
-@author: X0Leon
+@author: Leon Zhang
 @version: 0.4
 """
 

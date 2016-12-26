@@ -4,7 +4,7 @@
 Commission 佣金+费税模型
 New in V0.3.4
 
-@author: X0Leon
+@author: Leon Zhang
 @version: 0.4
 """
 

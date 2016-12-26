@@ -3,7 +3,7 @@
 """
 评估策略优劣的功能函数模块
 
-@author: X0Leon
+@author: Leon Zhang
 @version: 0.4
 """
 
@@ -129,10 +129,10 @@ def detail_blotter(backtest, positions, holdings, mode='simplified'):
         # 计算每根bar结束后的盈亏
         merge['pnl'] = merge['holdings'] - merge['holdings'].shift(1) - merge['cost'].shift(1) - \
                        merge['commission'].shift(1)
-        merge['pnl'].iloc[0] = 0.  # NaN
+        merge.ix[0, 'pnl'] = 0.  # NaN
         # 回测结束时对可能存在的强制平仓进行额外计算
-        merge['pnl'].iloc[-1] = merge['holdings'].iloc[-1] - merge['holdings'].iloc[-2] - merge['cost'].iloc[-1] - \
-                                merge['commission'].iloc[-1]
+        merge.ix[-1, 'pnl'] = merge['holdings'].iloc[-1] - merge['holdings'].iloc[-2] - merge['cost'].iloc[-1] - \
+                              merge['commission'].iloc[-1]
         # 以回测第一根bar收盘价作为起始资本
         merge['adj_total'] = merge['pnl'].cumsum() + merge['close'].iloc[0]
         del merge['cost']

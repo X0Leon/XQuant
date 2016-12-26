@@ -1,6 +1,6 @@
 # XQuant
 
-Backtesting microframe for equity/futures market with Python 3.x/pandas.
+Backtest frame for equity/futures market with Python 3.x/pandas.
 
 A股市场股票、股指期货、商品期货的量化投资回测框架。当前版本：Version 0.5 (2016/12)
 
@@ -11,7 +11,10 @@ A股市场股票、股指期货、商品期货的量化投资回测框架。当�
 * Pandas
 * Matplotlib
 
-安装：直接下载或者git clone到本地setup，在Version 1.0前不使用pip安装途径。
+安装：
+
+* 方式1：python setup.py install
+* 方式2：pip install xquant (推荐)
 
 使用：
 

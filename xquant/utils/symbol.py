@@ -6,7 +6,7 @@
                      金融衍生品：中国金融期货交易所
 New in V0.3.5
 
-@author: X0Leon
+@author: Leon Zhang
 @version: 0.3.5
 """
 

@@ -8,7 +8,7 @@
 
 Credit: Bryan Helmig (inspiration), Robert Kern (line_profiler) and more
 
-@author: X0Leon
+@author: Leon Zhang
 """
 
 import time

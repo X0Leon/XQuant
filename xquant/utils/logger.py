@@ -3,13 +3,14 @@
 """
 非常简单的日志模块
 
-@author: X0Leon
+@author: Leon Zhang
 @version: 0.4
 """
 
 import os
 import logging
 from ..conf import LOG, OUT_PATH
+
 
 def setup_logger(to_file=LOG['TO_FILE']):
     logger = logging.getLogger(__name__)
@@ -28,5 +29,3 @@ def setup_logger(to_file=LOG['TO_FILE']):
     logger.addHandler(stream_handler)
 
     return logger
-
-

@@ -6,14 +6,13 @@ Bayesian Optimization
 
 参考：
 学术文献：https://arxiv.org/pdf/1206.2944.pdf
-算法实现：https://github.com/fmfn/BayesianOptimization
+算法参考：https://github.com/fmfn/BayesianOptimization
 
-@author: X0Leon
+@author: Leon Zhang
 """
 
 import numpy as np
-from sklearn.gaussian_process import GaussianProcessRegressor
-from sklearn.gaussian_process.kernels import Matern
+from sklearn.gaussian_process import GaussianProcess
 from scipy.optimize import minimize
 from scipy.stats import norm
 
@@ -22,7 +21,6 @@ class UtilityFunction(object):
     """
     计算acquisition function，即下一次迭代选择的依据
     """
-
     def __init__(self, kind, kappa, xi):
         """
         UCB（Upper Confidence Bound）需要kappa参数
@@ -47,25 +45,27 @@ class UtilityFunction(object):
         """
         GP Upper Confidence Bound, (Srinivas, 2010)
         """
-        mean, std = gp.predict(x, return_std=True)
-        return mean + kappa * std
+        mean, var = gp.predict(x, eval_MSE=True)
+        return mean + kappa * np.sqrt(var)
 
     @staticmethod
     def _ei(x, gp, y_max, xi):
         """
         Expected Improvement, (Mockus, 1978)
         """
-        mean, std = gp.predict(x, return_std=True)
-        z = (mean - y_max - xi) / std
-        return (mean - y_max - xi) * norm.cdf(z) + std * norm.pdf(z)
+        mean, var = gp.predict(x, eval_MSE=True)
+        var = np.maximum(var, 1e-9 + 0 * var)  # 避免方差为零的点
+        z = (mean - y_max - xi) / np.sqrt(var)
+        return (mean - y_max - xi) * norm.cdf(z) + np.sqrt(var) * norm.pdf(z)
 
     @staticmethod
     def _poi(x, gp, y_max, xi):
         """
         Probability of Improvement, (Kushner, 1964)
         """
-        mean, std = gp.predict(x, return_std=True)
-        z = (mean - y_max - xi) / std
+        mean, var = gp.predict(x, eval_MSE=True)
+        var = np.maximum(var, 1e-9 + 0 * var)   # 避免方差为零的点
+        z = (mean - y_max - xi) / np.sqrt(var)
         return norm.cdf(z)
 
 
@@ -76,7 +76,7 @@ def unique_rows(a):
     参数：
     a: 需要剔除重复行的array
     返回:
-    独一无二的行的掩膜（mask）
+    mask of unique rows
     """
     order = np.lexsort(a.T)
     reorder = np.argsort(order)
@@ -117,7 +117,44 @@ def acq_max(ac, gp, y_max, bounds):
     return np.clip(x_max, bounds[:, 0], bounds[:, 1])
 
 
+def matern52(theta, d):
+    """
+    Matern 5/2 correlation model.
+    自动相关性确定（ARD）Matern 5/2的核函数
+        theta, d --> r(theta, d) = (1+sqrt(5)*r + 5/3*r^2)*exp(-sqrt(5)*r)       
+                               n
+            其中 r = sqrt(   sum  (d_i)^2 / (theta_i)^2 )
+                             i = 1
+    参考：
+    https://arxiv.org/pdf/1206.2944.pdf (第4页，公式4、5)
+    https://en.wikipedia.org/wiki/Mat%C3%A9rn_covariance_function
+
+    参数：
+    theta: 提供自动相关性参数的数组，shape 1 (isotropic)；n (anisotropic)
+    d: shape为(n_eval, n_features)的数据，提供模型中所需的|x-x'|的距离
+    返回：
+    r : shape (n_eval, )的数组， 包含ARD模型中的值
+    """
+    theta = np.asarray(theta, dtype=np.float)
+    d = np.asarray(d, dtype=np.float)
+    
+    if d.ndim > 1:
+        n_features = d.shape[1]
+    else:
+        n_features = 1
+        
+    if theta.size == 1:
+        r = np.sqrt(np.sum(d ** 2, axis=1)) / theta[0]
+    elif theta.size != n_features:
+        raise ValueError("Length of theta must be 1 or %s" % n_features)
+    else:
+        r = np.sqrt(np.sum(d ** 2 / theta.reshape(1, n_features) ** 2, axis=1))
+        
+    return (1 + np.sqrt(5)*r + 5/3.*r ** 2) * np.exp(-np.sqrt(5)*r)
+
+
 class BayesianOptimization(object):
+
     def __init__(self, f, pbounds):
         """
         参数：
@@ -143,11 +180,15 @@ class BayesianOptimization(object):
 
         # 迭代次数i
         self.i = 0
-
+        
         # scikit-learn中的GaussianProcess
-        self.gp = GaussianProcessRegressor(kernel=Matern(), n_restarts_optimizer=25)
+        self.gp = GaussianProcess(corr=matern52,
+                                  theta0=np.random.uniform(0.001, 0.05, self.dim),
+                                  thetaL=1e-5 * np.ones(self.dim),
+                                  thetaU=1e0 * np.ones(self.dim),
+                                  random_start=30)
 
-        # Utility函数
+        # Utility喊出 
         self.util = None
         # 输出字典
         self.res = dict()
@@ -199,14 +240,14 @@ class BayesianOptimization(object):
         if all([e == param_tup_lens[0] for e in param_tup_lens]):
             pass
         else:
-            raise ValueError('Number of initialization points for every parameter must be same.')
+            raise ValueError('The number of initialization points for every parameter must be same.')
 
-        # 列表的列表：2D
+        # list of lists
         all_points = []
         for key in self.keys:
             all_points.append(points_dict[key])
 
-        # 转置列表的列表，如[[1,2],[3,4]] -> [[1,3],[2,4]]
+        # transpose
         self.init_points = list(map(list, zip(*all_points)))
 
     def initialize(self, points_dict):
@@ -235,7 +276,13 @@ class BayesianOptimization(object):
         for row, key in enumerate(self.pbounds.keys()):
             self.bounds[row] = self.pbounds[key]
 
-    def maximize(self, init_points=5, n_iter=25, acq='ei', kappa=2.576, xi=0.0, **gp_params):
+    def maximize(self,
+                 init_points=5,
+                 n_iter=25,
+                 acq='ei',
+                 kappa=2.576,
+                 xi=0.0,
+                 **gp_params):
         """
         主要的优化方法
         参数：
@@ -261,7 +308,10 @@ class BayesianOptimization(object):
         self.gp.fit(self.X[ur], self.Y[ur])
 
         # 寻找acquisition function最大时的参数，argmax
-        x_max = acq_max(ac=self.util.utility, gp=self.gp, y_max=y_max, bounds=self.bounds)
+        x_max = acq_max(ac=self.util.utility,
+                        gp=self.gp,
+                        y_max=y_max,
+                        bounds=self.bounds)
         # 迭代寻优
         for i in range(n_iter):
             # 测试x_max是否重复，如果是，则随机重挑一个
@@ -274,7 +324,7 @@ class BayesianOptimization(object):
             self.X = np.vstack((self.X, x_max.reshape((1, -1))))
             self.Y = np.append(self.Y, self.f(**dict(zip(self.keys, x_max))))
 
-            # 更新GP
+            # 更新GP.
             ur = unique_rows(self.X)
             self.gp.fit(self.X[ur], self.Y[ur])
 
@@ -299,33 +349,27 @@ class BayesianOptimization(object):
 
 
 if __name__ == '__main__':
-    import time
-    start = time.time()
     # 使用示例
     # 传入需要最大化的函数和其参数的范围来创建BO对象
     # 这里用简单的二次函数，假装我们不知道其形式
-    bo = BayesianOptimization(lambda x, y: -x ** 2 - (y - 1) ** 2 + 1, {'x': (-4, 4), 'y': (-3, 3)})
+    bo = BayesianOptimization(lambda x, y: -x**2 - (y - 1)**2 + 1, {'x': (-4, 4), 'y': (-3, 3)})
     # 输入我们想要BO算法计算的值，参数为key、参数值为value的字典
     bo.explore({'x': [-1, 3], 'y': [-2, 2]})
     # 如果有先验的信息，即使不准确（如-2和-1.251），也一并丢给BO优化器
     bo.initialize({-2: {'x': 1, 'y': 0}, -1.251: {'x': 1, 'y': 1.5}})
 
     # 做好上面的各种初始化工作，我们就可以调用maximize方法来优化！
-    # 注意：总的函数运算次数要大于优化迭代次数，因为初始化时调用函数计算random+explore个数据点
     bo.maximize(init_points=5, n_iter=15, kappa=3.29)
     # 最大值存在self.res中
     print(bo.res['max'])
 
-    ################
+    ################ 
     # 如果我们不是很满意，增加点需要优化的值，改改参数，继续优化
     bo.explore({'x': [0.6], 'y': [-0.23]})
     # 修改高斯过程会大大改变优化行为
-    gp_params = {'kernel': None,
-                 'alpha': 1e-5}
+    gp_params = {'corr': 'absolute_exponential',
+                 'nugget': 1e-5}
     # 使用不同的acquisition function
     bo.maximize(n_iter=5, acq='ei', **gp_params)
     print(bo.res['max'])
     print(bo.res['all'])
-
-    end = time.time()
-    print(end-start)

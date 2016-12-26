@@ -3,11 +3,12 @@
 """
 Monte Carlo模拟另类历史回测
 
-@author: X0Leon
+@author: Leon Zhang
 @version: 0.4
 """
 
 import numpy as np
+
 
 def reorder(a, chunks=1):
     """
@@ -22,6 +23,7 @@ def reorder(a, chunks=1):
     np.random.shuffle(a)
     a = np.concatenate(a)
     return a
+
 
 def resample(a, chunks=1):
     """
@@ -40,7 +42,8 @@ def resample(a, chunks=1):
         a = np.random.choice(a, size=len(a))
     return a
 
-def monte_carlo(a, chunks=1, times=20, type='reorder'):
+
+def monte_carlo(a, chunks=1, times=20, shuffle_type='reorder'):
     """
     蒙特卡洛模拟对序列a进行重新抽样组合
     参数：
@@ -51,9 +54,9 @@ def monte_carlo(a, chunks=1, times=20, type='reorder'):
     返回：
     所有随机序列的list
     """
-    if type == 'reorder':
+    if shuffle_type == 'reorder':
         shuffle = reorder
-    elif type == 'resample':
+    elif shuffle_type == 'resample':
         shuffle = resample
     else:
         return None

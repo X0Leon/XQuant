@@ -3,7 +3,7 @@
 """
 回测的主要接口
 
-@author: X0Leon
+@author: Leon Zhang
 @version: 0.4
 """
 

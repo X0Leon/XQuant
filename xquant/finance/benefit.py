@@ -3,7 +3,7 @@
 """
 评估策略规则的优势率
 
-@author: X0Leon
+@author: Leon Zhang
 @version: 0.4
 """
 
@@ -31,3 +31,7 @@ def entry(df, n=30):
             entry_fall.append(adjust_fall)
 
     return np.mean(entry_rise)/np.mean(entry_fall)
+
+
+def win_loss():
+    pass

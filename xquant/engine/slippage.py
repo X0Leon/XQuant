@@ -4,7 +4,7 @@
 Slippage 滑点模型
 New in V0.3.4
 
-@author: X0Leon
+@author: Leon Zhang
 @version: 0.4
 """
 

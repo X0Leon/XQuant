@@ -3,7 +3,7 @@
 """
 DataHandler抽象基类
 
-@author: X0Leon
+@author: Leon Zhang
 @version: 0.4
 """
 

@@ -3,7 +3,7 @@
 """
 绘制蜡烛图、成交量和指标（可选，如技术指标或交易信号）
 
-@author: X0Leon
+@author: Leon Zhang
 @version: 0.4
 """
 

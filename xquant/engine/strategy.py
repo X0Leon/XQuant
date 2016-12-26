@@ -5,7 +5,7 @@ Strategy类
 Strategy对象计算市场数据，产生signal给Portfolio对象
 market data by DataHandler -> Strategy -> signal for Portfolio
 
-@author: X0Leon
+@author: Leon Zhang
 @version: 0.3
 """
 
