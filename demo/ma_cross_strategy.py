@@ -3,16 +3,15 @@
 """
 使用双均线策略测试
 
-@author: X0Leon
-@version: 0.3
+@author: Leon Zhang
+@version: 0.5.2
 """
 
 import os
 import datetime
 import pandas as pd
 
-from xquant import SignalEvent, Strategy, CSVDataHandler, \
-    SimulatedExecutionHandler, BasicPortfolio, Backtest
+from xquant import SignalEvent, Strategy, CSVDataHandler, SimulatedExecutionHandler, BasicPortfolio, Backtest
 
 
 class MovingAverageCrossStrategy(Strategy):
@@ -34,7 +33,7 @@ class MovingAverageCrossStrategy(Strategy):
         self.long_window = long_window
         self.short_window = short_window
 
-        self.bought = self._calculate_initial_bought()
+        self.bought = self._calculate_initial_bought()  # 或 {s: False for s in self.symbol_list}
 
     def _calculate_initial_bought(self):
         """
@@ -42,40 +41,38 @@ class MovingAverageCrossStrategy(Strategy):
         """
         bought = {}
         for s in self.symbol_list:
-            bought[s] = False
+            bought[s] = False  # 或者'EXIT'
         return bought
 
     def calculate_signals(self, event):
         """
-        当短期均线（如5日线）上穿长期均线（如10日线），买入
-        反之，卖出；不做空
+        当短期均线（如5日线）上穿长期均线（如10日线），买入；反之，卖出
         """
         if event.type == 'BAR':
             for s in self.symbol_list:
-                bars = self.bars.get_latest_bars(s, N=self.long_window)  # 元组列表
-                if bars is not None and bars != [] and len(bars) >= self.long_window:
-                    cols = ['symbol','datetime','open','high','low','close','volume']
-                    df = pd.DataFrame(bars, columns=cols)
-                    df['MA_long'] = df['close'].rolling(center=False, window=self.long_window, min_periods=1).mean()
-                    df['MA_short'] = df['close'].rolling(center=False, window=self.short_window, min_periods=1).mean()
-                    if df['MA_long'].iloc[-1] < df['MA_short'].iloc[-1] and \
-                                    df['MA_long'].iloc[-2] > df['MA_short'].iloc[-2]:
+                bar = self.bars.get_latest_bar(s)
+                if bar is None or bar == []: continue
+
+                bars = self.bars.get_latest_bars(s, N=self.long_window)
+                if len(bars) >= self.long_window:
+                    df = pd.DataFrame(bars, columns=['symbol','datetime','open','high','low','close','volume'])
+                    df['MA_l'] = df['close'].rolling(self.long_window, min_periods=1).mean()
+                    df['MA_s'] = df['close'].rolling(self.short_window, min_periods=1).mean()
+                    if df['MA_l'].iloc[-1] < df['MA_s'].iloc[-1] and df['MA_l'].iloc[-2] > df['MA_s'].iloc[-2]:
                         if not self.bought[s]:
-                            signal = SignalEvent(bars[-1][0],bars[-1][1], 'LONG')
+                            signal = SignalEvent(bar.symbol, bar.datetime, 'LONG')
                             self.events.put(signal)
                             self.bought[s] = True
-                    elif df['MA_long'].iloc[-1] < df['MA_short'].iloc[-1] and \
-                                    df['MA_long'].iloc[-2] < df['MA_short'].iloc[-2]:
+                    elif df['MA_l'].iloc[-1] < df['MA_s'].iloc[-1] and df['MA_l'].iloc[-2] < df['MA_s'].iloc[-2]:
                         if self.bought[s]:
-                            signal = SignalEvent(bars[-1][0], bars[-1][1], 'EXIT')
+                            signal = SignalEvent(bar.symbol, bar.datetime, 'EXIT')
                             self.events.put(signal)
                             self.bought[s] = False
 
 
 if __name__ == '__main__':
-    csv_dir = os.path.join(os.path.dirname(os.getcwd()), 'demo/testdata')  # testdata文件夹路径
-    # symbol_list = ['600008', '600018']
-    symbol_list = ['600008']
+    csv_dir = os.path.join(os.path.dirname(os.getcwd()), 'demo/testdata')
+    symbol_list = ['600008', '600018']
     initial_capital = 100000.0
     heartbeat = 0.0
     start_date = datetime.datetime(2015, 10, 2, 0, 0)

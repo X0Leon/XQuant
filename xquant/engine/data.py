@@ -4,7 +4,7 @@
 DataHandler抽象基类
 
 @author: Leon Zhang
-@version: 0.4
+@version: 0.5.2
 """
 
 import datetime
@@ -24,7 +24,7 @@ class DataHandler(object):
     继承的DataHandler对象用于对每个symbol生成bars序列（OHLCV）
     这里不区分历史数据和实时交易数据
     """
-    # Bar = namedtuple('Bar', ('symbol', 'datetime', 'open', 'high', 'low', 'close', 'volume'))
+    Bar = namedtuple('Bar', ('symbol', 'datetime', 'open', 'high', 'low', 'close', 'volume'))
 
     __metaclass__ = ABCMeta
 
@@ -89,7 +89,7 @@ class CSVDataHandler(DataHandler):
         生成器，每次调用生成一个新的bar，直到数据最后，在update_bars()中调用
         """
         for b in self.symbol_data[symbol]:
-            yield tuple([symbol, b[0], b[1][0], b[1][1], b[1][2], b[1][3], b[1][4]])
+            yield DataHandler.Bar(symbol, b[0], b[1][0], b[1][1], b[1][2], b[1][3], b[1][4])
 
 
     def get_latest_bars(self, symbol, N=1):
