@@ -17,8 +17,8 @@ Backtest frame for equity/futures market. 股票和期货的量化投资回测�
 
 假如我们已经写好了一个策略，我们称之为DemoStrategy（或者更现实一点的为MovingAverageCrossStrategy），将这个策略类传入回测引擎Backtest类中，然后就可以直接回测。首先我们来看初始化Backtest类需要哪些参数：
 
-    Backtest(csv_dir, symbol_list, initial_capital, heartbeat, start_date, end_date, 
-             data_handler, execution_handler, portfolio, strategy, 
+    Backtest(csv_dir, symbol_list, initial_capital, heartbeat, start_date, 
+             end_date,data_handler, execution_handler, portfolio, strategy, 
              commission_type='zero', slippage_type='zero', **params)
 
 * csv_dir: CSV数据文件夹目录
@@ -38,27 +38,29 @@ Backtest frame for equity/futures market. 股票和期货的量化投资回测�
 
 注意到需要传入一些类来初始化引擎，所以在策略文件一开始我们导入它们：
 
-    from xquant import (SignalEvent, Strategy, CSVDataHandler, SimulatedExecutionHandler, 
-                        BasicPortfolio, Backtest)
+    from xquant import (SignalEvent, Strategy, CSVDataHandler, 
+                        SimulatedExecutionHandler, BasicPortfolio, Backtest)
                         
 其他一些变量可以直接传入，当然指定一个额外的变量使可读性更好：
 
     csv_dir = 'D:/data'
-    symbol_list = ['600008', '600018', '600028']  # 在data文件夹中应该存在600008.csv这样的文件
+    symbol_list = ['600008', '600018', '600028']  # 需00008.csv这样的文件
     initial_capital = 100000.0
     heartbeat = 0.0
     start_date = datetime.datetime(2015, 1, 1 0, 0)
     end_date = datetime.datetime.now()
     # 实例化回测引擎
-    backtest = Backtest(csv_dir, symbol_list, initial_capital, heartbeat, start_date, end_date,
-                        CSVDataHandler, SimulatedExecutionHandler, BasicPortfolio, DemoStrategy)
+    backtest = Backtest(csv_dir, symbol_list, initial_capital, heartbeat, 
+                        start_date, end_date, CSVDataHandler, 
+                        SimulatedExecutionHandler, BasicPortfolio, DemoStrategy)
 
 ### 获取数据
 
 上例演示了我们用本地csv数据源进行回测，以600008.csv为例，其应该应该依次包含datetime, open, high, low, close, volume六列，然后CSVDataHandler自动为我们逐个bar播放数据。在策略中我们需要获得过去的数据，最主要的接口是：
 
     bars = DataHandler.get_latest_bars(N=1)
-    # 获取最近的N根bars，返回的数据结构是元组的列表，即[(symbol, datetime, open, high, low, close, volume),(),…]
+    # 获取最近的N根bars，返回的数据结构是元组的列表
+    # 即[(symbol, datetime, open, high, low, close, volume),(),…]
 
 对于每个bar，我们可以用bar.open这样的方式来获取成员。
 
@@ -141,7 +143,7 @@ positions是所有品种（symbol）持仓情况的DataFrame，holdings是账户
 
     from xquant.perform import perform_metrics
     
-    perform_metrics(holdings['total'], periods=252)  # 回测周期是天，若为分钟periods=252*24*60
+    perform_metrics(holdings['total'], periods=252)  # 若为分钟periods=252*24*60
     perform, ret, sharpe_ratio, max_dd = holdings['total']
 
 如果我们还想获得每笔成交情况，可以调用：
@@ -154,7 +156,7 @@ positions是所有品种（symbol）持仓情况的DataFrame，holdings是账户
 
     from xquant.perform import detail_blotter
     
-    blotter = detail_blotter(backtest, positions, holdings)  # 字典，键为symbol，值为df
+    blotter = detail_blotter(backtest, positions, holdings)  # 字典，值为df
     blotter1 = blotter['600008']
 
 ### 示例
