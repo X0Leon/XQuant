@@ -4,21 +4,21 @@ Backtest frame for equity/futures market with Python 3.x/pandas.
 
 A股市场股票、股指期货、商品期货的量化投资回测框架。当前版本：Version 0.5 (2016/12)
 
-## 核心依赖库：
+## Dependencies：
 
-* Python 3.x/2.7 (建议3.x)
+* Python 3.x/2.7 (建议3.5及以上)
 * Numpy
 * Pandas
 * Matplotlib
 
-## 安装：
+## Install：
 
 * 方式1：python setup.py install
 * 方式2：pip install xquant (推荐)
 
-## 使用：
+## Document：
 
-快速入门：[xquant docs](http://www.domuse.com/XQuant/) (适用于v0.5.2及以上版本)
+快速入门：[document for xquant](http://www.domuse.com/XQuant/) (适用于v0.5.2及以上版本)
 
 A示例: 参考demo文件夹中的移动双均线策略（Moving Average Cross Strategy）
 
@@ -49,6 +49,8 @@ A示例: 参考demo文件夹中的移动双均线策略（Moving Average Cross S
 
 注：非重要的子版本不列出，一般为Bugfix或者小的文本/注释调整
 
-Copyright (c) 2016 X0Leon (Leon Zhang) Email: pku09zl[at]gmail[dot]com
+交流：QQ群 518444516
+
+Copyright (c) 2016-2017 X0Leon (Leon Zhang) Email: pku09zl[at]gmail[dot]com
 
 持续活跃更新中，在Version 1.0前不保证API稳定。欢迎讨论、PR和Star!
