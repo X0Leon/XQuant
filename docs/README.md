@@ -43,8 +43,8 @@ Backtest(csv_dir, symbol_list, initial_capital, heartbeat, start_date,
 ```python
 from xquant import (SignalEvent, Strategy, CSVDataHandler, 
                     SimulatedExecutionHandler, BasicPortfolio, Backtest)
-```
 
+```                        
 其他一些变量可以直接传入，当然指定一个额外的变量使可读性更好：
 
 ```python
@@ -52,7 +52,7 @@ csv_dir = 'D:/data'
 symbol_list = ['600008', '600018', '600028']  # 需00008.csv这样的文件
 initial_capital = 100000.0
 heartbeat = 0.0
-start_date = datetime.datetime(2015, 1, 1 0, 0)
+start_date = datetime.datetime(2015, 1, 1, 0, 0)
 end_date = datetime.datetime.now()
 # 实例化回测引擎
 backtest = Backtest(csv_dir, symbol_list, initial_capital, heartbeat, 
@@ -156,10 +156,9 @@ positions, holdings = backtest.simulate_trading()
 positions是所有品种（symbol）持仓情况的DataFrame，holdings是账户净值情况的DataFrame，可以据此进一步分析，xquant.perform模块提供了夏普率、最大回测等常用的策略表现得评估函数：
 
 ```python
-from xquant.perform import perform_metrics
+from xquant.finance.perform import perform_metrics
 
-perform_metrics(holdings['total'], periods=252)  # 若为分钟periods=252*24*60
-perform, ret, sharpe_ratio, max_dd = holdings['total']
+perform, ret, sharpe_ratio, max_dd = perform_metrics(holdings['total'], periods=252)  # 若为分钟periods=252*24*60
 ```
 
 如果我们还想获得每笔成交情况，可以调用：
@@ -170,13 +169,13 @@ trades = backtest.trade_record()
 
 通常情况下，我们由positions, holdings和trades足以分析策略的表现。
 
-对于多品种组合合适时，我们可能对各个品种单独的表现也很感兴趣，finance.perform中提供了一个便捷函数，用于获得详细的交易流水：
+对于多品种构建组合时，我们可能对各个品种单独的表现也很感兴趣，finance.finance.perform中提供了一个便捷函数，用于获得详细的交易流水：
 
 ```python
-from xquant.perform import detail_blotter
-
-blotter = detail_blotter(backtest, positions, holdings)  # 字典，值为df
-blotter1 = blotter['600008']
+    from xquant.finance.perform import detail_blotter
+    
+    blotter = detail_blotter(backtest, positions, holdings)  # 字典，值为df
+    blotter1 = blotter['600008']
 ```
 
 ### 示例
