@@ -61,6 +61,7 @@ class BasicPortfolio(Portfolio):
         self.all_holdings = self.construct_all_holdings()
         self.current_holdings = self.construct_current_holdings()
 
+        self.all_signals = []
         self.all_trades = []
 
     def construct_all_positions(self):
@@ -164,7 +165,7 @@ class BasicPortfolio(Portfolio):
         self.current_holdings['cash'] -= (cost + fill.commission)
         self.current_holdings['total'] -= fill.commission
 
-    def update_trades_from_fill(self, fill):
+    def record_trades_from_fill(self, fill):
         """
         从FillEvent对象中读取全部数据作为交易记录
         参数：
@@ -188,7 +189,7 @@ class BasicPortfolio(Portfolio):
         if event.type == 'FILL':
             self.update_positions_from_fill(event)
             self.update_holdings_from_fill(event)
-            self.update_trades_from_fill(event)
+            self.record_trades_from_fill(event)
 
     def generate_naive_order(self, signal):
         """
@@ -222,10 +223,25 @@ class BasicPortfolio(Portfolio):
 
         return order
 
+    def record_current_signal(self, signal):
+        """
+        从SignalEvent对象中读取全部数据作为信号记录
+        """
+        current_signal = {}
+        current_signal['symbol'] = signal.symbol
+        current_signal['datetime'] = signal.datetime
+        current_signal['signal_type'] = signal.signal_type
+        current_signal['strategy_id'] = signal.strategy_id
+        current_signal['strength'] = signal.strength
+        
+        self.all_signals.append(current_signal)
+        
     def update_signal(self, event):
         """
         基于组合管理的逻辑，通过SignalEvent对象来产生新的orders
         """
         if event.type == 'SIGNAL':
+            self.record_current_signal(event)
             order_event = self.generate_naive_order(event)
             self.events.put(order_event)
+            
